@@ -5,6 +5,7 @@
 
 #include "dsp/Drive.h"
 #include "dsp/Preamp.h"
+#include "params/ParameterIDs.h"
 
 //==============================================================================
 /**
@@ -53,16 +54,17 @@ public:
 
     //==========================================================================
     // IDs estables de parametros. Nunca renombrar: rompe la automatizacion guardada.
-    static constexpr const char* inputGainID  = "inputGain";
-    static constexpr const char* bassID       = "bass";
-    static constexpr const char* midID        = "mid";
-    static constexpr const char* trebleID     = "treble";
-    static constexpr const char* driveID      = "drive";
-    static constexpr const char* driveTypeID  = "driveType";
-    static constexpr const char* driveToneID  = "driveTone";
-    static constexpr const char* driveMixID   = "driveMix";
-    static constexpr const char* oversampleID = "oversample";
-    static constexpr const char* outputGainID = "output";
+    // Viven en params/ParameterIDs.h para compartirlos con el PresetManager.
+    static constexpr const char* inputGainID  = flang::params::inputGain;
+    static constexpr const char* bassID       = flang::params::bass;
+    static constexpr const char* midID        = flang::params::mid;
+    static constexpr const char* trebleID     = flang::params::treble;
+    static constexpr const char* driveID      = flang::params::drive;
+    static constexpr const char* driveTypeID  = flang::params::driveType;
+    static constexpr const char* driveToneID  = flang::params::driveTone;
+    static constexpr const char* driveMixID   = flang::params::driveMix;
+    static constexpr const char* oversampleID = flang::params::oversample;
+    static constexpr const char* outputGainID = flang::params::outputGain;
 
     juce::AudioProcessorValueTreeState apvts;
 

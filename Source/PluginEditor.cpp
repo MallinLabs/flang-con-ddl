@@ -3,16 +3,18 @@
 //==============================================================================
 namespace
 {
-    constexpr int kHeaderHeight = 60;
-    constexpr int kKnobRows     = 2;
+    constexpr int kHeaderHeight  = 60;
+    constexpr int kKnobRows      = 2;
     constexpr int kChoicesHeight = 56;
-    constexpr int kMaxKnobSize  = 80;
+    constexpr int kPresetHeight  = 28;
+    constexpr int kMaxKnobSize   = 80;
 }
 
 //==============================================================================
 FlangAudioProcessorEditor::FlangAudioProcessorEditor (FlangAudioProcessor& p)
     : AudioProcessorEditor (&p),
-      processorRef (p)
+      processorRef (p),
+      presets (p.apvts)
 {
     setupKnob (knobs[0], "Input",  FlangAudioProcessor::inputGainID);
     setupKnob (knobs[1], "Drive",  FlangAudioProcessor::driveID);
@@ -26,7 +28,32 @@ FlangAudioProcessorEditor::FlangAudioProcessorEditor (FlangAudioProcessor& p)
     setupChoice (choices[0], "Type",       FlangAudioProcessor::driveTypeID);
     setupChoice (choices[1], "Oversample", FlangAudioProcessor::oversampleID);
 
-    setSize (620, 400);
+    // Barra de presets.
+    addAndMakeVisible (presetBox);
+    presetBox.onChange = [this]
+    {
+        const int index = presetBox.getSelectedItemIndex();
+        if (index >= 0)
+            presets.load (index);
+    };
+
+    presetName.setText ("User Preset", false);
+    presetName.setSelectAllWhenFocused (true);
+    addAndMakeVisible (presetName);
+
+    saveButton.onClick = [this] { saveCurrentPreset(); };
+    addAndMakeVisible (saveButton);
+
+    resetButton.onClick = [this]
+    {
+        presets.resetAll();
+        presetBox.setSelectedItemIndex (0, juce::dontSendNotification);
+    };
+    addAndMakeVisible (resetButton);
+
+    refreshPresetList();
+
+    setSize (620, 470);
 }
 
 //==============================================================================
@@ -65,6 +92,31 @@ void FlangAudioProcessorEditor::setupChoice (Choice& choice,
         processorRef.apvts, paramID, choice.box);
 }
 
+void FlangAudioProcessorEditor::refreshPresetList()
+{
+    presetBox.clear (juce::dontSendNotification);
+
+    const auto names = presets.getPresetNames();
+    for (int i = 0; i < names.size(); ++i)
+        presetBox.addItem (names[i], i + 1);
+
+    if (names.size() > 0)
+        presetBox.setSelectedItemIndex (0, juce::dontSendNotification);
+}
+
+void FlangAudioProcessorEditor::saveCurrentPreset()
+{
+    auto name = presetName.getText().trim();
+    if (name.isEmpty())
+        name = "Preset";
+
+    presets.save (name);
+    refreshPresetList();
+
+    if (presetBox.getNumItems() > 0)
+        presetBox.setSelectedItemIndex (presetBox.getNumItems() - 1, juce::dontSendNotification);
+}
+
 //==============================================================================
 void FlangAudioProcessorEditor::paint (juce::Graphics& g)
 {
@@ -87,6 +139,17 @@ void FlangAudioProcessorEditor::resized()
     auto area = getLocalBounds().reduced (12);
     area.removeFromTop (kHeaderHeight - 12);
 
+    // Barra de presets (abajo de todo).
+    auto presetRow = area.removeFromBottom (kPresetHeight);
+    resetButton.setBounds (presetRow.removeFromRight (72));
+    presetRow.removeFromRight (6);
+    saveButton.setBounds (presetRow.removeFromRight (72));
+    presetRow.removeFromRight (6);
+    presetName.setBounds (presetRow.removeFromRight (150));
+    presetRow.removeFromRight (6);
+    presetBox.setBounds (presetRow);
+
+    // Fila de selectores.
     auto choiceRow = area.removeFromBottom (kChoicesHeight);
     const int perChoice = choiceRow.getWidth() / (int) choices.size();
 
@@ -97,7 +160,8 @@ void FlangAudioProcessorEditor::resized()
         choice.box.setBounds (cell.withSizeKeepingCentre (cell.getWidth(), 26));
     }
 
-    const int perRow   = (int) knobs.size() / kKnobRows;
+    // Perillas (2 filas x 4).
+    const int perRow    = (int) knobs.size() / kKnobRows;
     const int rowHeight = area.getHeight() / kKnobRows;
 
     for (int row = 0; row < kKnobRows; ++row)

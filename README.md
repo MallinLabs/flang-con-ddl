@@ -7,9 +7,9 @@ y una sección de modulación conmutable **Chorus / Flanger** en true stereo.
 > La referencia sonora está inspirada en un ampli de estado sólido famoso por su
 > clean; el nombre y la identidad son originales.
 
-Estado actual: **Fase 2 — preamp + EQ + drive**. Procesa audio: Input, Bass, Mid,
-Treble, Drive (Type / Tone / Mix / Oversample) y Output. Todavía no hay modulación
-(chorus/flanger).
+Estado actual: **Fase 2 — preamp + EQ + drive**, con **presets** (factory + usuario)
+y **Reset**. Procesa audio: Input, Bass, Mid, Treble, Drive (Type / Tone / Mix /
+Oversample) y Output. Todavía no hay modulación (chorus/flanger).
 
 ## Requisitos
 

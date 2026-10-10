@@ -4,12 +4,12 @@
 
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "PluginProcessor.h"
+#include "PresetManager.h"
 
 //==============================================================================
 /**
-    GUI de Fase 2: 8 perillas (Input/Drive/Tone/Mix/Bass/Mid/Treble/Output)
-    + 2 selectores (Type/Oversample). Minimalista a proposito; la GUI "linda"
-    es Fase 6.
+    GUI: 8 perillas (Input/Drive/Tone/Mix/Bass/Mid/Treble/Output), 2 selectores
+    (Type/Oversample) y una barra de presets (combo + nombre + Save + Reset).
 */
 class FlangAudioProcessorEditor : public juce::AudioProcessorEditor
 {
@@ -37,10 +37,18 @@ private:
 
     void setupKnob (Knob& knob, const juce::String& name, const char* paramID);
     void setupChoice (Choice& choice, const juce::String& name, const char* paramID);
+    void refreshPresetList();
+    void saveCurrentPreset();
 
     FlangAudioProcessor& processorRef;
     std::array<Knob, 8> knobs;
     std::array<Choice, 2> choices;
+
+    juce::ComboBox presetBox;
+    juce::TextEditor presetName;
+    juce::TextButton saveButton { "Save" };
+    juce::TextButton resetButton { "Reset" };
+    flang::PresetManager presets;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FlangAudioProcessorEditor)
 };
