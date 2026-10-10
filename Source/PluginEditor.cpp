@@ -6,11 +6,11 @@ namespace
     constexpr int kPlateInset    = 8;
     constexpr int kPlatePad      = 18;
     constexpr int kHeaderHeight  = 76;
-    constexpr int kKnobRows      = 3;
+    constexpr int kKnobRows      = 4;
     constexpr int kChoicesHeight = 56;
     constexpr int kPresetHeight  = 28;
     constexpr int kSectionHeight = 16;
-    constexpr int kMaxKnobSize   = 68;
+    constexpr int kMaxKnobSize   = 62;
 
     using flang::ui::colour::engraved;
     using flang::ui::colour::cream;
@@ -44,27 +44,36 @@ FlangAudioProcessorEditor::FlangAudioProcessorEditor (FlangAudioProcessor& p)
     // --- DRIVE ---
     setupKnob (knobs[4],  "Drive",  FlangAudioProcessor::driveID,
                "Amount of overdrive / distortion.");
-    setupKnob (knobs[5],  "Tone",   FlangAudioProcessor::driveToneID,
+    setupKnob (knobs[5],  "Warmth", FlangAudioProcessor::warmthID,
+               "Tube warmth: even harmonics (asymmetry). 0 = symmetric/harsher.");
+    setupKnob (knobs[6],  "Tone",   FlangAudioProcessor::driveToneID,
                "Post-drive lowpass: left = dark, right = bright.");
-    setupKnob (knobs[6],  "Mix",    FlangAudioProcessor::driveMixID,
+    setupKnob (knobs[7],  "Mix",    FlangAudioProcessor::driveMixID,
                "Clean <-> driven blend (0 = clean amp).");
-    setupKnob (knobs[7],  "Output", FlangAudioProcessor::outputGainID, "Output level (dB).");
+    setupKnob (knobs[8],  "Output", FlangAudioProcessor::outputGainID, "Output level (dB).");
 
     // --- MOD ---
-    setupKnob (knobs[8],  "Rate",     FlangAudioProcessor::modRateID, "Modulation speed (Hz).");
-    setupKnob (knobs[9],  "Depth",    FlangAudioProcessor::modDepthID, "Modulation amount.");
-    setupKnob (knobs[10], "Feedback", FlangAudioProcessor::modFeedbackID,
+    setupKnob (knobs[9],  "Rate",     FlangAudioProcessor::modRateID, "Modulation speed (Hz).");
+    setupKnob (knobs[10], "Depth",    FlangAudioProcessor::modDepthID, "Modulation amount.");
+    setupKnob (knobs[11], "Feedback", FlangAudioProcessor::modFeedbackID,
                "Resonance of the delay line (mostly for Flanger).");
-    setupKnob (knobs[11], "ModMix",   FlangAudioProcessor::modMixID, "Modulation blend (0 = dry).");
-    setupKnob (knobs[12], "Spread",   FlangAudioProcessor::modSpreadID,
+    setupKnob (knobs[12], "ModMix",   FlangAudioProcessor::modMixID, "Modulation blend (0 = dry).");
+    setupKnob (knobs[13], "Spread",   FlangAudioProcessor::modSpreadID,
                "Stereo LFO phase offset: 0 = mono, 1 = 180 degrees.");
 
+    // --- SPACE ---
+    setupKnob (knobs[14], "Reverb", FlangAudioProcessor::reverbAmountID, "Reverb amount.");
+    setupKnob (knobs[15], "Delay",  FlangAudioProcessor::delayAmountID,  "Echo amount.");
+
+    // --- Selectores ---
     setupChoice (choices[0], "Type",       FlangAudioProcessor::driveTypeID,
-                 "Distortion shape: Soft (tanh), Hard (clip), Fold (foldback).");
+                 "Distortion shape: Tube (warm), Soft (tanh), Hard (clip), Fold (foldback).");
     setupChoice (choices[1], "Oversample", FlangAudioProcessor::oversampleID,
                  "Anti-aliasing oversampling factor (higher = cleaner).");
     setupChoice (choices[2], "Mode",       FlangAudioProcessor::modModeID,
                  "Chorus (subtle, wide) or Flanger (short delay + feedback, jet).");
+    setupChoice (choices[3], "Order",      FlangAudioProcessor::spaceRoutingID,
+                 "Reverb/Echo order: Reverb > Echo, Echo > Reverb, or Parallel.");
 
     // Toggle de Mod (joya ambar).
     addAndMakeVisible (modToggle);
@@ -73,7 +82,7 @@ FlangAudioProcessorEditor::FlangAudioProcessorEditor (FlangAudioProcessor& p)
         processorRef.apvts, FlangAudioProcessor::modOnID, modToggle);
 
     // Titulos de seccion grabados.
-    const juce::StringArray sectionNames { "PREAMP", "DRIVE", "MOD" };
+    const juce::StringArray sectionNames { "PREAMP", "DRIVE", "MOD", "SPACE" };
     for (size_t i = 0; i < sectionLabels.size(); ++i)
     {
         auto& label = sectionLabels[i];
@@ -130,7 +139,7 @@ FlangAudioProcessorEditor::FlangAudioProcessorEditor (FlangAudioProcessor& p)
 
     refreshPresetList();
 
-    setSize (680, 600);
+    setSize (680, 700);
 }
 
 FlangAudioProcessorEditor::~FlangAudioProcessorEditor()
@@ -217,17 +226,22 @@ void FlangAudioProcessorEditor::showHelp()
         "  Bass / Mid / Treble - 3-band EQ (dB)\n\n"
         "DRIVE\n"
         "  Drive - amount of distortion\n"
+        "  Warmth - tube even-harmonic warmth (asymmetry)\n"
         "  Tone - post-drive brightness\n"
         "  Mix - clean <-> driven (0 = clean amp)\n"
         "  Output - output level\n\n"
         "MOD\n"
         "  Mod - enable chorus / flanger\n"
-        "  Mode - Chorus (subtle, wide) or Flanger (short delay + feedback, jet)\n"
+        "  Mode - Chorus (subtle, wide) or Flanger (jet)\n"
         "  Rate - modulation speed\n"
         "  Depth - modulation amount\n"
         "  Feedback - resonance (mostly for Flanger)\n"
         "  Mod Mix - modulation blend\n"
         "  Spread - stereo width of the modulation\n\n"
+        "SPACE\n"
+        "  Reverb - reverb amount\n"
+        "  Delay - echo amount\n"
+        "  Order - Reverb > Echo, Echo > Reverb, or Parallel\n\n"
         "Type / Oversample - distortion shape and anti-aliasing quality";
 
     juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::InfoIcon,
@@ -275,10 +289,10 @@ void FlangAudioProcessorEditor::paint (juce::Graphics& g)
     g.drawRoundedRectangle (plate.reduced (2.5f), 8.0f, 1.0f);
 
     // Tornillos.
-    drawScrew (g, { plate.getX() + 18.0f,         plate.getY() + 18.0f });
-    drawScrew (g, { plate.getRight() - 18.0f,     plate.getY() + 18.0f });
-    drawScrew (g, { plate.getX() + 18.0f,         plate.getBottom() - 18.0f });
-    drawScrew (g, { plate.getRight() - 18.0f,     plate.getBottom() - 18.0f });
+    drawScrew (g, { plate.getX() + 18.0f,     plate.getY() + 18.0f });
+    drawScrew (g, { plate.getRight() - 18.0f, plate.getY() + 18.0f });
+    drawScrew (g, { plate.getX() + 18.0f,     plate.getBottom() - 18.0f });
+    drawScrew (g, { plate.getRight() - 18.0f, plate.getBottom() - 18.0f });
 
     // Nameplate.
     auto header = getLocalBounds().toFloat()
@@ -310,13 +324,13 @@ void FlangAudioProcessorEditor::resized()
     presetRow.removeFromRight (6);
     presetBox.setBounds (presetRow);
 
-    // Fila de selectores: Type | Oversample | Mode | Mod.
+    // Fila de selectores: Type | Oversample | Mode | Order | Mod.
     auto choiceRow = content.removeFromBottom (kChoicesHeight);
-    const int cellW = choiceRow.getWidth() / 4;
+    const int cellW = choiceRow.getWidth() / 5;
 
     auto layoutChoice = [&] (Choice& choice)
     {
-        auto cell = choiceRow.removeFromLeft (cellW).reduced (10, 0);
+        auto cell = choiceRow.removeFromLeft (cellW).reduced (8, 0);
         choice.label.setBounds (cell.removeFromTop (18));
         choice.box.setBounds (cell.withSizeKeepingCentre (cell.getWidth(), 26));
     };
@@ -324,12 +338,13 @@ void FlangAudioProcessorEditor::resized()
     layoutChoice (choices[0]);
     layoutChoice (choices[1]);
     layoutChoice (choices[2]);
+    layoutChoice (choices[3]);
 
-    auto modCell = choiceRow.reduced (10, 0);
+    auto modCell = choiceRow.reduced (8, 0);
     modToggle.setBounds (modCell.withSizeKeepingCentre (modCell.getWidth(), 26));
 
-    // Perillas: 3 filas de 4 / 4 / 5.
-    const std::array<int, kKnobRows> perRow { 4, 4, 5 };
+    // Perillas: 4 filas de 4 / 5 / 5 / 2.
+    const std::array<int, kKnobRows> perRow { 4, 5, 5, 2 };
     const int rowHeight = content.getHeight() / kKnobRows;
     int index = 0;
 

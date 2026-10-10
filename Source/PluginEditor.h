@@ -9,8 +9,8 @@
 
 //==============================================================================
 /**
-    GUI con estetica de amplificador (tolex marron "dulce de leche" + panel de
-    laton + perillas marfil), organizada en 3 secciones (PREAMP / DRIVE / MOD).
+    GUI con estetica de amplificador, organizada en 4 secciones
+    (PREAMP / DRIVE / MOD / SPACE).
 */
 class FlangAudioProcessorEditor : public juce::AudioProcessorEditor
 {
@@ -49,9 +49,9 @@ private:
     flang::ui::FlangLookAndFeel lnf;
     juce::Image noise;
 
-    std::array<Knob, 13> knobs;
-    std::array<Choice, 3> choices;
-    std::array<juce::Label, 3> sectionLabels;
+    std::array<Knob, 16> knobs;
+    std::array<Choice, 4> choices;
+    std::array<juce::Label, 4> sectionLabels;
 
     juce::ToggleButton modToggle { "Mod" };
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> modAttachment;
