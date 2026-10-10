@@ -1,0 +1,75 @@
+#pragma once
+
+#include <juce_audio_processors/juce_audio_processors.h>
+#include <juce_dsp/juce_dsp.h>
+
+#include "dsp/Preamp.h"
+
+//==============================================================================
+/**
+    Flang con Dulce de Leche — AudioProcessor.
+
+    Adapter delgado entre el host y el nucleo DSP (Source/dsp/). El DSP no sabe
+    nada del host: eso es lo que mantiene la logica pura y testeable.
+
+    Fase 1: ganancia de entrada + EQ de 3 bandas + ganancia de salida.
+*/
+class FlangAudioProcessor : public juce::AudioProcessor
+{
+public:
+    //==========================================================================
+    FlangAudioProcessor();
+    ~FlangAudioProcessor() override;
+
+    //==========================================================================
+    void prepareToPlay (double sampleRate, int samplesPerBlock) override;
+    void releaseResources() override;
+    void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+
+    //==========================================================================
+    juce::AudioProcessorEditor* createEditor() override;
+    bool hasEditor() const override { return true; }
+
+    //==========================================================================
+    const juce::String getName() const override { return JucePlugin_Name; }
+
+    bool acceptsMidi() const override  { return false; }
+    bool producesMidi() const override { return false; }
+    bool isMidiEffect() const override { return false; }
+    double getTailLengthSeconds() const override { return 0.0; }
+
+    //==========================================================================
+    int getNumPrograms() override { return 1; }
+    int getCurrentProgram() override { return 0; }
+    void setCurrentProgram (int) override {}
+    const juce::String getProgramName (int) override { return {}; }
+    void changeProgramName (int, const juce::String&) override {}
+
+    //==========================================================================
+    void getStateInformation (juce::MemoryBlock& destData) override;
+    void setStateInformation (const void* data, int sizeInBytes) override;
+
+    //==========================================================================
+    // IDs estables de parametros. Nunca renombrar: rompe la automatizacion guardada.
+    static constexpr const char* inputGainID  = "inputGain";
+    static constexpr const char* bassID       = "bass";
+    static constexpr const char* midID        = "mid";
+    static constexpr const char* trebleID     = "treble";
+    static constexpr const char* outputGainID = "output";
+
+    juce::AudioProcessorValueTreeState apvts;
+
+private:
+    //==========================================================================
+    static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+
+    float param (const char* id) const noexcept
+    {
+        return apvts.getRawParameterValue (id)->load();
+    }
+
+    flang::dsp::Preamp preamp;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> outputGain { 1.0f };
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FlangAudioProcessor)
+};

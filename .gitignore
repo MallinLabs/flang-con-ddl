@@ -1,0 +1,16 @@
+# Build
+build/
+cmake-build-*/
+
+# macOS
+.DS_Store
+
+# Artefactos de plugin
+*.vst3/
+*.component/
+*.app/
+
+# IDE
+.vscode/
+.idea/
+CMakeUserPresets.json
