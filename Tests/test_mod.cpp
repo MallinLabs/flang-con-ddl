@@ -74,6 +74,28 @@ TEST_CASE ("Spread genera ancho estereo", "[dsp][mod]")
     REQUIRE (maxChannelDiff (withoutSpread) < 1e-6f);   // sin desfase -> canales identicos
 }
 
+TEST_CASE ("Flanger: el delay modulado no toca el piso", "[dsp][mod]")
+{
+    flang::dsp::ModEngine mod;
+    mod.prepare (kSr, 2, 512);
+    mod.setCentreDelayMs (2.0f);   // flanger
+    mod.setDepth (1.0f);
+    mod.setRate (2.0f);
+    mod.setSpread (0.0f);
+    mod.setFeedback (0.0f);
+    mod.setMix (0.0f);
+
+    for (int b = 0; b < 60; ++b)
+    {
+        auto buffer = makeMonoInput (512, 300.0f);
+        mod.process (buffer);
+    }
+
+    // Con el fix, el delay va ~0.2..3.8 ms. Con el clamp viejo, tocaba 0.1.
+    REQUIRE (mod.getMinDelayMs() > 0.15f);
+    REQUIRE (mod.getMaxDelayMs() < 4.0f);
+}
+
 TEST_CASE ("ModEngine nunca produce NaN/Inf", "[dsp][mod]")
 {
     flang::dsp::ModEngine mod;

@@ -104,7 +104,11 @@ public:
             return;
 
         const double phaseIncrement = (double) rate / sampleRate;
-        const float  depthMs        = depth * kMaxDepthMs;
+
+        // Depth es un porcentaje del delay central: el delay modulado queda
+        // siempre positivo (0.2..3.8 ms en flanger, 1.5..28.5 ms en chorus),
+        // sin tocar el piso ni clampearse.
+        const float  depthMs        = depth * centreDelayMs * 0.9f;
 
         for (int i = 0; i < numSamples; ++i)
         {
@@ -118,6 +122,8 @@ public:
 
                 const float targetMs = juce::jlimit (0.1f, (float) kMaxDelayMs - 1.0f,
                                                      centreDelayMs + depthMs * lfo);
+                debugMinDelayMs = juce::jmin (debugMinDelayMs, targetMs);
+                debugMaxDelayMs = juce::jmax (debugMaxDelayMs, targetMs);
                 delaySamplesSm[(size_t) ch].setTargetValue (targetMs * 0.001f * (float) sampleRate);
                 const float dSamples = delaySamplesSm[(size_t) ch].getNextValue();
 
@@ -136,10 +142,14 @@ public:
         }
     }
 
+    //==========================================================================
+    // Para tests: rango del delay modulado observado.
+    float getMinDelayMs() const noexcept { return debugMinDelayMs; }
+    float getMaxDelayMs() const noexcept { return debugMaxDelayMs; }
+
 private:
     //==========================================================================
     static constexpr double kMaxDelayMs = 50.0;
-    static constexpr float  kMaxDepthMs = 8.0f;
 
     void updatePhaseOffsets()
     {
@@ -178,6 +188,8 @@ private:
     float spread       = 1.0f;
     float feedback     = 0.0f;
     float centreDelayMs = 15.0f;
+
+    float debugMinDelayMs = 1.0e9f, debugMaxDelayMs = 0.0f;
 
     double phase = 0.0;
     std::vector<double> channelPhaseOffset;
