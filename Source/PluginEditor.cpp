@@ -4,10 +4,10 @@
 namespace
 {
     constexpr int kHeaderHeight  = 60;
-    constexpr int kKnobRows      = 2;
+    constexpr int kKnobRows      = 3;
     constexpr int kChoicesHeight = 56;
     constexpr int kPresetHeight  = 28;
-    constexpr int kMaxKnobSize   = 80;
+    constexpr int kMaxKnobSize   = 76;
 }
 
 //==============================================================================
@@ -16,17 +16,30 @@ FlangAudioProcessorEditor::FlangAudioProcessorEditor (FlangAudioProcessor& p)
       processorRef (p),
       presets (p.apvts)
 {
-    setupKnob (knobs[0], "Input",  FlangAudioProcessor::inputGainID);
-    setupKnob (knobs[1], "Drive",  FlangAudioProcessor::driveID);
-    setupKnob (knobs[2], "Tone",   FlangAudioProcessor::driveToneID);
-    setupKnob (knobs[3], "Mix",    FlangAudioProcessor::driveMixID);
-    setupKnob (knobs[4], "Bass",   FlangAudioProcessor::bassID);
-    setupKnob (knobs[5], "Mid",    FlangAudioProcessor::midID);
-    setupKnob (knobs[6], "Treble", FlangAudioProcessor::trebleID);
-    setupKnob (knobs[7], "Output", FlangAudioProcessor::outputGainID);
+    // Preamp.
+    setupKnob (knobs[0],  "Input",  FlangAudioProcessor::inputGainID);
+    setupKnob (knobs[1],  "Bass",   FlangAudioProcessor::bassID);
+    setupKnob (knobs[2],  "Mid",    FlangAudioProcessor::midID);
+    setupKnob (knobs[3],  "Treble", FlangAudioProcessor::trebleID);
+    // Drive.
+    setupKnob (knobs[4],  "Drive",  FlangAudioProcessor::driveID);
+    setupKnob (knobs[5],  "Tone",   FlangAudioProcessor::driveToneID);
+    setupKnob (knobs[6],  "Mix",    FlangAudioProcessor::driveMixID);
+    setupKnob (knobs[7],  "Output", FlangAudioProcessor::outputGainID);
+    // Mod (chorus).
+    setupKnob (knobs[8],  "Rate",   FlangAudioProcessor::modRateID);
+    setupKnob (knobs[9],  "Depth",  FlangAudioProcessor::modDepthID);
+    setupKnob (knobs[10], "ModMix", FlangAudioProcessor::modMixID);
+    setupKnob (knobs[11], "Spread", FlangAudioProcessor::modSpreadID);
 
     setupChoice (choices[0], "Type",       FlangAudioProcessor::driveTypeID);
     setupChoice (choices[1], "Oversample", FlangAudioProcessor::oversampleID);
+
+    // Toggle de Mod.
+    addAndMakeVisible (modToggle);
+    modToggle.setColour (juce::ToggleButton::textColourId, juce::Colours::lightgrey);
+    modAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
+        processorRef.apvts, FlangAudioProcessor::modOnID, modToggle);
 
     // Barra de presets.
     addAndMakeVisible (presetBox);
@@ -53,7 +66,7 @@ FlangAudioProcessorEditor::FlangAudioProcessorEditor (FlangAudioProcessor& p)
 
     refreshPresetList();
 
-    setSize (620, 470);
+    setSize (620, 540);
 }
 
 //==============================================================================
@@ -149,18 +162,22 @@ void FlangAudioProcessorEditor::resized()
     presetRow.removeFromRight (6);
     presetBox.setBounds (presetRow);
 
-    // Fila de selectores.
+    // Fila de selectores: Type | Oversample | Mod.
     auto choiceRow = area.removeFromBottom (kChoicesHeight);
-    const int perChoice = choiceRow.getWidth() / (int) choices.size();
+    const int cellW = choiceRow.getWidth() / 3;
 
-    for (auto& choice : choices)
-    {
-        auto cell = choiceRow.removeFromLeft (perChoice).reduced (20, 0);
-        choice.label.setBounds (cell.removeFromTop (18));
-        choice.box.setBounds (cell.withSizeKeepingCentre (cell.getWidth(), 26));
-    }
+    auto typeCell = choiceRow.removeFromLeft (cellW).reduced (16, 0);
+    choices[0].label.setBounds (typeCell.removeFromTop (18));
+    choices[0].box.setBounds (typeCell.withSizeKeepingCentre (typeCell.getWidth(), 26));
 
-    // Perillas (2 filas x 4).
+    auto osCell = choiceRow.removeFromLeft (cellW).reduced (16, 0);
+    choices[1].label.setBounds (osCell.removeFromTop (18));
+    choices[1].box.setBounds (osCell.withSizeKeepingCentre (osCell.getWidth(), 26));
+
+    auto modCell = choiceRow.reduced (16, 0);
+    modToggle.setBounds (modCell.withSizeKeepingCentre (modCell.getWidth(), 26));
+
+    // Perillas (3 filas x 4).
     const int perRow    = (int) knobs.size() / kKnobRows;
     const int rowHeight = area.getHeight() / kKnobRows;
 

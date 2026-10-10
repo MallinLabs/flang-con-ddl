@@ -57,6 +57,26 @@ FlangAudioProcessor::createParameterLayout()
         juce::ParameterID { oversampleID, 1 }, "Oversample",
         juce::StringArray { "2x", "4x", "8x" }, 1));
 
+    // Mod (chorus).
+    layout.add (std::make_unique<juce::AudioParameterBool> (
+        juce::ParameterID { modOnID, 1 }, "Mod", false));
+
+    layout.add (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { modRateID, 1 }, "Rate",
+        juce::NormalisableRange<float> { 0.05f, 5.0f, 0.001f, 0.4f }, 0.6f));
+
+    layout.add (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { modDepthID, 1 }, "Depth",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.5f));
+
+    layout.add (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { modMixID, 1 }, "Mod Mix",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.5f));
+
+    layout.add (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { modSpreadID, 1 }, "Spread",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 1.0f));
+
     layout.add (std::make_unique<juce::AudioParameterFloat> (
         juce::ParameterID { outputGainID, 1 }, "Output",
         juce::NormalisableRange<float> { -24.0f, 12.0f, 0.1f }, 0.0f,
@@ -72,6 +92,7 @@ void FlangAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 
     preamp.prepare (sampleRate, numChannels, samplesPerBlock);
     drive.prepare  (sampleRate, numChannels, samplesPerBlock);
+    mod.prepare    (sampleRate, numChannels, samplesPerBlock);
 
     outputGain.reset (sampleRate, 0.02);   // 20 ms: anti-zipper
     outputGain.setCurrentAndTargetValue (1.0f);
@@ -118,6 +139,14 @@ void FlangAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     }
 
     drive.process (buffer);
+
+    // Mod: chorus true-stereo. Apagado => mix 0 (dry puro).
+    mod.setRate (param (modRateID));
+    mod.setDepth (param (modDepthID));
+    mod.setSpread (param (modSpreadID));
+    mod.setFeedback (0.0f);
+    mod.setMix (param (modOnID) > 0.5f ? param (modMixID) : 0.0f);
+    mod.process (buffer);
 
     // Output gain.
     outputGain.setTargetValue (juce::Decibels::decibelsToGain (param (outputGainID)));

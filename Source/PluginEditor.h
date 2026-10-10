@@ -8,8 +8,8 @@
 
 //==============================================================================
 /**
-    GUI: 8 perillas (Input/Drive/Tone/Mix/Bass/Mid/Treble/Output), 2 selectores
-    (Type/Oversample) y una barra de presets (combo + nombre + Save + Reset).
+    GUI: 12 perillas (preamp / drive / mod), 2 selectores (Type / Oversample),
+    un toggle de Mod, y una barra de presets (combo + nombre + Save + Reset).
 */
 class FlangAudioProcessorEditor : public juce::AudioProcessorEditor
 {
@@ -41,8 +41,11 @@ private:
     void saveCurrentPreset();
 
     FlangAudioProcessor& processorRef;
-    std::array<Knob, 8> knobs;
+    std::array<Knob, 12> knobs;
     std::array<Choice, 2> choices;
+
+    juce::ToggleButton modToggle { "Mod" };
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> modAttachment;
 
     juce::ComboBox presetBox;
     juce::TextEditor presetName;

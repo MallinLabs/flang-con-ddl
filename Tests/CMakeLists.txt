@@ -13,6 +13,7 @@ target_sources(FlangTests PRIVATE
     test_tone_stack.cpp
     test_preamp.cpp
     test_drive.cpp
+    test_mod.cpp
 )
 
 target_include_directories(FlangTests PRIVATE ${CMAKE_SOURCE_DIR}/Source)

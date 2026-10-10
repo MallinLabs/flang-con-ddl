@@ -4,6 +4,7 @@
 #include <juce_dsp/juce_dsp.h>
 
 #include "dsp/Drive.h"
+#include "dsp/ModEngine.h"
 #include "dsp/Preamp.h"
 #include "params/ParameterIDs.h"
 
@@ -39,7 +40,7 @@ public:
     bool acceptsMidi() const override  { return false; }
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
-    double getTailLengthSeconds() const override { return 0.0; }
+    double getTailLengthSeconds() const override { return 0.5; }
 
     //==========================================================================
     int getNumPrograms() override { return 1; }
@@ -64,6 +65,11 @@ public:
     static constexpr const char* driveToneID  = flang::params::driveTone;
     static constexpr const char* driveMixID   = flang::params::driveMix;
     static constexpr const char* oversampleID = flang::params::oversample;
+    static constexpr const char* modOnID      = flang::params::modOn;
+    static constexpr const char* modRateID    = flang::params::modRate;
+    static constexpr const char* modDepthID   = flang::params::modDepth;
+    static constexpr const char* modMixID     = flang::params::modMix;
+    static constexpr const char* modSpreadID  = flang::params::modSpread;
     static constexpr const char* outputGainID = flang::params::outputGain;
 
     juce::AudioProcessorValueTreeState apvts;
@@ -77,8 +83,9 @@ private:
         return apvts.getRawParameterValue (id)->load();
     }
 
-    flang::dsp::Preamp preamp;
-    flang::dsp::Drive  drive;
+    flang::dsp::Preamp    preamp;
+    flang::dsp::Drive     drive;
+    flang::dsp::ModEngine mod;
 
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> outputGain { 1.0f };
 
