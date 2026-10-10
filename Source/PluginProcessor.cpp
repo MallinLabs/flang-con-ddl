@@ -17,6 +17,12 @@ namespace
         if (x < -t) return -t + (1.0f - t) * std::tanh ((x + t) / (1.0f - t));
         return x;
     }
+
+    // Divisiones musicales del eco (nombre + multiplicador de pulsos).
+    const juce::StringArray kDivisionNames { "1/1", "1/2", "1/4", "1/4.", "1/8",
+                                             "1/8.", "1/8T", "1/16", "1/16." };
+    const double kDivisionBeats[] { 4.0, 2.0, 1.0, 1.5, 0.5, 0.75, 1.0 / 3.0, 0.25, 0.375 };
+    constexpr int kNumDivisions = (int) (sizeof (kDivisionBeats) / sizeof (kDivisionBeats[0]));
 }
 
 //==============================================================================
@@ -136,6 +142,12 @@ FlangAudioProcessor::createParameterLayout()
         juce::ParameterID { delayFeedbackID, 1 }, "Repeats",
         juce::NormalisableRange<float> { 0.0f, 0.9f, 0.001f }, 0.35f));
 
+    layout.add (std::make_unique<juce::AudioParameterBool> (
+        juce::ParameterID { delaySyncID, 1 }, "Sync", false));
+
+    layout.add (std::make_unique<juce::AudioParameterChoice> (
+        juce::ParameterID { delayDivisionID, 1 }, "Division", kDivisionNames, 4));
+
     layout.add (std::make_unique<juce::AudioParameterFloat> (
         juce::ParameterID { outputGainID, 1 }, "Output",
         juce::NormalisableRange<float> { -24.0f, 12.0f, 0.1f }, 0.0f,
@@ -225,6 +237,20 @@ void FlangAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     space.setDelayTimeMs (param (delayTimeID));
     space.setDelayFeedback (param (delayFeedbackID));
     space.setRouting (static_cast<flang::dsp::SpaceRouting> ((int) param (spaceRoutingID)));
+
+    // Tempo-sync: si esta activo, el tiempo del eco sigue al BPM del host.
+    if (param (delaySyncID) > 0.5f)
+    {
+        double bpm = 120.0;
+        if (auto* ph = getPlayHead())
+            if (auto pos = ph->getPosition())
+                if (auto b = pos->getBpm())
+                    bpm = *b;
+
+        const int div = juce::jlimit (0, kNumDivisions - 1, (int) param (delayDivisionID));
+        space.setDelayTimeMs ((float) (kDivisionBeats[div] * 60.0 / juce::jmax (20.0, bpm) * 1000.0));
+    }
+
     space.process (buffer);
 
     // Output gain + soft clip de seguridad.
@@ -237,6 +263,12 @@ void FlangAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         for (int i = 0; i < numSamples; ++i)
             d[i] = softClip (d[i]);
     }
+
+    // Medidor: nivel de pico del bloque.
+    levelL.store (buffer.getMagnitude (0, 0, numSamples));
+    levelR.store (buffer.getNumChannels() > 1
+                      ? buffer.getMagnitude (1, 0, numSamples)
+                      : levelL.load());
 }
 
 //==============================================================================

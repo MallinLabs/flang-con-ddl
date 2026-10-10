@@ -23,6 +23,7 @@ FlangAudioProcessorEditor::FlangAudioProcessorEditor (FlangAudioProcessor& p)
     : AudioProcessorEditor (&p),
       processorRef (p),
       routingSwitch (p.apvts, FlangAudioProcessor::spaceRoutingID),
+      meter (p),
       presets (p.apvts)
 {
     setLookAndFeel (&lnf);
@@ -79,9 +80,20 @@ FlangAudioProcessorEditor::FlangAudioProcessorEditor (FlangAudioProcessor& p)
                  "Anti-aliasing oversampling factor (higher = cleaner).");
     setupChoice (choices[2], "Mode",       FlangAudioProcessor::modModeID,
                  "Chorus (subtle, wide) or Flanger (short delay + feedback, jet).");
+    setupChoice (choices[3], "Div",        FlangAudioProcessor::delayDivisionID,
+                 "Echo note division when Sync is on.");
 
     // Switch fisico de orden (Reverb/Echo).
     addAndMakeVisible (routingSwitch);
+
+    addAndMakeVisible (meter);
+
+    // Sync del eco al tempo del host.
+    addAndMakeVisible (syncToggle);
+    syncToggle.setColour (juce::ToggleButton::textColourId, engraved);
+    syncToggle.setTooltip ("Sync the echo time to the host tempo.");
+    syncAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
+        processorRef.apvts, FlangAudioProcessor::delaySyncID, syncToggle);
 
     // Toggle de Mod (joya ambar).
     addAndMakeVisible (modToggle);
@@ -356,7 +368,8 @@ void FlangAudioProcessorEditor::paint (juce::Graphics& g)
 void FlangAudioProcessorEditor::resized()
 {
     auto outer = getLocalBounds().reduced (kPlateInset);
-    outer.removeFromTop (kHeaderHeight);
+    auto headerRow = outer.removeFromTop (kHeaderHeight);
+    meter.setBounds (headerRow.removeFromRight (96).reduced (12, 16));
     auto content = outer.reduced (kPlatePad);
 
     // Footer: preset | nombre | Save | Reset | ?
@@ -400,6 +413,28 @@ void FlangAudioProcessorEditor::resized()
     {
         auto rowArea = content.removeFromTop (rowHeight);
         sectionLabels[(size_t) row].setBounds (rowArea.removeFromTop (kSectionHeight).reduced (6, 0));
+
+        if (row == 3)   // SPACE: 5 perillas + Sync + Division
+        {
+            const int cw = rowArea.getWidth() / 7;
+
+            for (int col = 0; col < 5; ++col)
+            {
+                auto cell = rowArea.removeFromLeft (cw);
+                auto& knob = knobs[(size_t) index++];
+                knob.label.setBounds (cell.removeFromTop (16));
+                const int size = juce::jmin (cell.getWidth(), cell.getHeight(), kMaxKnobSize);
+                knob.slider.setBounds (cell.withSizeKeepingCentre (size, size));
+            }
+
+            auto sc = rowArea.removeFromLeft (cw).reduced (8, 0);
+            syncToggle.setBounds (sc.withSizeKeepingCentre (sc.getWidth(), 26));
+
+            auto dc = rowArea.removeFromLeft (cw).reduced (6, 0);
+            choices[3].label.setBounds (dc.removeFromTop (16));
+            choices[3].box.setBounds (dc.withSizeKeepingCentre (dc.getWidth(), 24));
+            continue;
+        }
 
         const int cellWidth = rowArea.getWidth() / perRow[(size_t) row];
 

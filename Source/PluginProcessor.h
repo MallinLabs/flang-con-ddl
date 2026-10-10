@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_dsp/juce_dsp.h>
 
@@ -62,6 +64,12 @@ public:
     /** Nombre de la IR de parlante en uso. */
     juce::String getCabIRName() const { return cabIrName; }
 
+    /** Nivel de pico del ultimo bloque (para el medidor). */
+    float getLevel (int channel) const noexcept
+    {
+        return (channel == 0 ? levelL : levelR).load();
+    }
+
     //==========================================================================
     // IDs estables de parametros. Nunca renombrar: rompe la automatizacion guardada.
     // Viven en params/ParameterIDs.h para compartirlos con el PresetManager.
@@ -89,6 +97,8 @@ public:
     static constexpr const char* delayAmountID  = flang::params::delayAmount;
     static constexpr const char* delayTimeID    = flang::params::delayTime;
     static constexpr const char* delayFeedbackID = flang::params::delayFeedback;
+    static constexpr const char* delaySyncID     = flang::params::delaySync;
+    static constexpr const char* delayDivisionID = flang::params::delayDivision;
     static constexpr const char* outputGainID = flang::params::outputGain;
 
     juce::AudioProcessorValueTreeState apvts;
@@ -109,6 +119,7 @@ private:
     flang::dsp::SpaceFX   space;
 
     juce::String cabIrName { "Built-in" };
+    std::atomic<float> levelL { 0.0f }, levelR { 0.0f };
 
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> outputGain { 1.0f };
 

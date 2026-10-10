@@ -6,6 +6,7 @@
 #include "PluginProcessor.h"
 #include "PresetManager.h"
 #include "ui/FlangLookAndFeel.h"
+#include "ui/LevelMeter.h"
 #include "ui/RoutingSwitch.h"
 
 //==============================================================================
@@ -55,12 +56,17 @@ private:
     juce::Image noise;
 
     std::array<Knob, 20> knobs;
-    std::array<Choice, 3> choices;
+    std::array<Choice, 4> choices;
     std::array<juce::Label, 5> sectionLabels;
 
     juce::ToggleButton modToggle { "Mod" };
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> modAttachment;
     flang::ui::RoutingSwitch routingSwitch;
+
+    juce::ToggleButton syncToggle { "Sync" };
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> syncAttachment;
+
+    flang::ui::LevelMeter meter;
 
     juce::ComboBox presetBox;
     juce::TextEditor presetName;

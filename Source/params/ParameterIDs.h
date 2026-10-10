@@ -30,6 +30,8 @@ namespace flang::params
     inline constexpr const char* delayAmount   = "delayAmount";
     inline constexpr const char* delayTime     = "delayTime";
     inline constexpr const char* delayFeedback = "delayFeedback";
+    inline constexpr const char* delaySync     = "delaySync";
+    inline constexpr const char* delayDivision = "delayDivision";
 
     inline constexpr const char* outputGain = "output";
 }
