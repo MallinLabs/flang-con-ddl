@@ -4,7 +4,7 @@ Reglas para agentes de codigo (y humanos) en este repo. Es **configuracion ejecu
 
 ## Project
 
-`Flang con Dulce de Leche` — plugin de audio (C++ / JUCE) de la org **Mallin**: preamp limpio + EQ, drive incorporado, y modulacion conmutable Chorus/Flanger true-stereo.
+`Flang con Dulce de Leche` — plugin de audio (C++ / JUCE) de la org **MallinLabs**: preamp limpio + EQ, drive incorporado, y modulacion conmutable Chorus/Flanger true-stereo.
 
 ## Estructura
 

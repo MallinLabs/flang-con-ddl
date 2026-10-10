@@ -67,4 +67,6 @@ Live: procesan señales conocidas y verifican la respuesta.
 
 ## Licencia
 
-JUCE se usa bajo su licencia dual (GPL / personal). Definir antes de distribuir.
+**AGPL-3.0** (ver [`LICENSE`](./LICENSE)). JUCE 9 se usa bajo su opción **AGPLv3**
+(su licencia dual: AGPLv3 o comercial). Es copyleft: se puede usar, modificar y
+vender, pero no cerrar la fuente.
