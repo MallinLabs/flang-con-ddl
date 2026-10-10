@@ -3,12 +3,18 @@
 //==============================================================================
 namespace
 {
-    constexpr int kHeaderHeight  = 60;
+    constexpr int kPlateInset    = 8;
+    constexpr int kPlatePad      = 18;
+    constexpr int kHeaderHeight  = 76;
     constexpr int kKnobRows      = 3;
     constexpr int kChoicesHeight = 56;
     constexpr int kPresetHeight  = 28;
     constexpr int kSectionHeight = 16;
-    constexpr int kMaxKnobSize   = 72;
+    constexpr int kMaxKnobSize   = 68;
+
+    using flang::ui::colour::engraved;
+    using flang::ui::colour::cream;
+    using flang::ui::colour::brassMid;
 }
 
 //==============================================================================
@@ -17,15 +23,23 @@ FlangAudioProcessorEditor::FlangAudioProcessorEditor (FlangAudioProcessor& p)
       processorRef (p),
       presets (p.apvts)
 {
+    setLookAndFeel (&lnf);
+
+    // Textura de tolex (ruido procedural cacheado).
+    noise = juce::Image (juce::Image::ARGB, 48, 48, true);
+    {
+        juce::Random rng (0x5eed1234);
+        for (int yy = 0; yy < noise.getHeight(); ++yy)
+            for (int xx = 0; xx < noise.getWidth(); ++xx)
+                noise.setPixelAt (xx, yy, juce::Colours::black.withAlpha (rng.nextFloat() * 0.5f));
+    }
+
     // --- PREAMP ---
     setupKnob (knobs[0],  "Input",  FlangAudioProcessor::inputGainID,
                "Input gain into the preamp (dB).");
-    setupKnob (knobs[1],  "Bass",   FlangAudioProcessor::bassID,
-               "Low shelf EQ (dB).");
-    setupKnob (knobs[2],  "Mid",    FlangAudioProcessor::midID,
-               "Mid peak EQ (dB).");
-    setupKnob (knobs[3],  "Treble", FlangAudioProcessor::trebleID,
-               "High shelf EQ (dB).");
+    setupKnob (knobs[1],  "Bass",   FlangAudioProcessor::bassID, "Low shelf EQ (dB).");
+    setupKnob (knobs[2],  "Mid",    FlangAudioProcessor::midID,  "Mid peak EQ (dB).");
+    setupKnob (knobs[3],  "Treble", FlangAudioProcessor::trebleID, "High shelf EQ (dB).");
 
     // --- DRIVE ---
     setupKnob (knobs[4],  "Drive",  FlangAudioProcessor::driveID,
@@ -34,22 +48,17 @@ FlangAudioProcessorEditor::FlangAudioProcessorEditor (FlangAudioProcessor& p)
                "Post-drive lowpass: left = dark, right = bright.");
     setupKnob (knobs[6],  "Mix",    FlangAudioProcessor::driveMixID,
                "Clean <-> driven blend (0 = clean amp).");
-    setupKnob (knobs[7],  "Output", FlangAudioProcessor::outputGainID,
-               "Output level (dB).");
+    setupKnob (knobs[7],  "Output", FlangAudioProcessor::outputGainID, "Output level (dB).");
 
     // --- MOD ---
-    setupKnob (knobs[8],  "Rate",     FlangAudioProcessor::modRateID,
-               "Modulation speed (Hz).");
-    setupKnob (knobs[9],  "Depth",    FlangAudioProcessor::modDepthID,
-               "Modulation amount.");
+    setupKnob (knobs[8],  "Rate",     FlangAudioProcessor::modRateID, "Modulation speed (Hz).");
+    setupKnob (knobs[9],  "Depth",    FlangAudioProcessor::modDepthID, "Modulation amount.");
     setupKnob (knobs[10], "Feedback", FlangAudioProcessor::modFeedbackID,
                "Resonance of the delay line (mostly for Flanger).");
-    setupKnob (knobs[11], "ModMix",   FlangAudioProcessor::modMixID,
-               "Modulation blend (0 = dry).");
+    setupKnob (knobs[11], "ModMix",   FlangAudioProcessor::modMixID, "Modulation blend (0 = dry).");
     setupKnob (knobs[12], "Spread",   FlangAudioProcessor::modSpreadID,
                "Stereo LFO phase offset: 0 = mono, 1 = 180 degrees.");
 
-    // --- Selectores ---
     setupChoice (choices[0], "Type",       FlangAudioProcessor::driveTypeID,
                  "Distortion shape: Soft (tanh), Hard (clip), Fold (foldback).");
     setupChoice (choices[1], "Oversample", FlangAudioProcessor::oversampleID,
@@ -57,26 +66,25 @@ FlangAudioProcessorEditor::FlangAudioProcessorEditor (FlangAudioProcessor& p)
     setupChoice (choices[2], "Mode",       FlangAudioProcessor::modModeID,
                  "Chorus (subtle, wide) or Flanger (short delay + feedback, jet).");
 
-    // Toggle de Mod.
+    // Toggle de Mod (joya ambar).
     addAndMakeVisible (modToggle);
-    modToggle.setColour (juce::ToggleButton::textColourId, juce::Colours::lightgrey);
     modToggle.setTooltip ("Enable the modulation (chorus / flanger).");
     modAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
         processorRef.apvts, FlangAudioProcessor::modOnID, modToggle);
 
-    // Titulos de seccion.
+    // Titulos de seccion grabados.
     const juce::StringArray sectionNames { "PREAMP", "DRIVE", "MOD" };
     for (size_t i = 0; i < sectionLabels.size(); ++i)
     {
         auto& label = sectionLabels[i];
         label.setText (sectionNames[(int) i], juce::dontSendNotification);
         label.setJustificationType (juce::Justification::centredLeft);
-        label.setColour (juce::Label::textColourId, juce::Colours::orange.withAlpha (0.85f));
-        label.setFont (juce::Font (juce::FontOptions (12.0f)));
+        label.setColour (juce::Label::textColourId, engraved);
+        label.setFont (juce::Font (juce::FontOptions (12.0f, juce::Font::bold)));
         addAndMakeVisible (label);
     }
 
-    // Barra de presets + ayuda.
+    // --- Barra de presets + ayuda ---
     addAndMakeVisible (presetBox);
     presetBox.setTooltip ("Load a preset (factory or user).");
     presetBox.onChange = [this]
@@ -89,10 +97,21 @@ FlangAudioProcessorEditor::FlangAudioProcessorEditor (FlangAudioProcessor& p)
     presetName.setText ("User Preset", false);
     presetName.setSelectAllWhenFocused (true);
     presetName.setTooltip ("Name for the preset you save.");
+    presetName.setColour (juce::TextEditor::backgroundColourId, juce::Colour (0xff2a1b0f));
+    presetName.setColour (juce::TextEditor::textColourId, cream);
+    presetName.setColour (juce::TextEditor::outlineColourId, brassMid.withAlpha (0.6f));
+    presetName.setColour (juce::TextEditor::focusedOutlineColourId, cream);
     addAndMakeVisible (presetName);
+
+    auto styleMetalButton = [] (juce::TextButton& b)
+    {
+        b.setColour (juce::TextButton::textColourOffId, engraved);
+        b.setColour (juce::TextButton::textColourOnId, engraved);
+    };
 
     saveButton.setTooltip ("Save the current settings as a user preset.");
     saveButton.onClick = [this] { saveCurrentPreset(); };
+    styleMetalButton (saveButton);
     addAndMakeVisible (saveButton);
 
     resetButton.setTooltip ("Reset every control to its default.");
@@ -101,15 +120,22 @@ FlangAudioProcessorEditor::FlangAudioProcessorEditor (FlangAudioProcessor& p)
         presets.resetAll();
         presetBox.setSelectedItemIndex (0, juce::dontSendNotification);
     };
+    styleMetalButton (resetButton);
     addAndMakeVisible (resetButton);
 
     helpButton.setTooltip ("What does each control do?");
     helpButton.onClick = [this] { showHelp(); };
+    styleMetalButton (helpButton);
     addAndMakeVisible (helpButton);
 
     refreshPresetList();
 
-    setSize (640, 560);
+    setSize (680, 600);
+}
+
+FlangAudioProcessorEditor::~FlangAudioProcessorEditor()
+{
+    setLookAndFeel (nullptr);
 }
 
 //==============================================================================
@@ -124,11 +150,14 @@ void FlangAudioProcessorEditor::setupKnob (Knob& knob,
                                      juce::MathConstants<float>::pi * 2.75f,
                                      true);
     knob.slider.setTooltip (tooltip);
+    knob.slider.setColour (juce::Slider::textBoxTextColourId, engraved);
+    knob.slider.setColour (juce::Slider::textBoxBackgroundColourId, juce::Colours::transparentBlack);
+    knob.slider.setColour (juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
     addAndMakeVisible (knob.slider);
 
     knob.label.setText (name, juce::dontSendNotification);
     knob.label.setJustificationType (juce::Justification::centred);
-    knob.label.setColour (juce::Label::textColourId, juce::Colours::lightgrey);
+    knob.label.setColour (juce::Label::textColourId, engraved);
     addAndMakeVisible (knob.label);
 
     knob.attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
@@ -142,10 +171,13 @@ void FlangAudioProcessorEditor::setupChoice (Choice& choice,
 {
     addAndMakeVisible (choice.box);
     choice.box.setTooltip (tooltip);
+    choice.box.setColour (juce::ComboBox::textColourId, cream);
+    choice.box.setColour (juce::ComboBox::backgroundColourId, juce::Colours::transparentBlack);
+    choice.box.setColour (juce::ComboBox::outlineColourId, juce::Colours::transparentBlack);
 
     choice.label.setText (name, juce::dontSendNotification);
     choice.label.setJustificationType (juce::Justification::centred);
-    choice.label.setColour (juce::Label::textColourId, juce::Colours::lightgrey);
+    choice.label.setColour (juce::Label::textColourId, engraved);
     addAndMakeVisible (choice.label);
 
     choice.attachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment> (
@@ -204,29 +236,70 @@ void FlangAudioProcessorEditor::showHelp()
 }
 
 //==============================================================================
+void FlangAudioProcessorEditor::drawScrew (juce::Graphics& g, juce::Point<float> centre) const
+{
+    juce::Rectangle<float> r (centre.x - 5.0f, centre.y - 5.0f, 10.0f, 10.0f);
+
+    juce::ColourGradient grad (juce::Colour (0xff6b5330), centre.x, r.getY(),
+                               juce::Colour (0xff3a2a16), centre.x, r.getBottom(), false);
+    g.setGradientFill (grad);
+    g.fillEllipse (r);
+
+    g.setColour (juce::Colours::black.withAlpha (0.7f));
+    g.drawEllipse (r, 1.0f);
+    g.drawLine (centre.x - 3.5f, centre.y, centre.x + 3.5f, centre.y, 1.2f);
+}
+
+//==============================================================================
 void FlangAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    g.fillAll (juce::Colour (0xff1b1b1f));
+    using namespace flang::ui::colour;
 
-    auto header = getLocalBounds().removeFromTop (kHeaderHeight);
+    // Tolex: degradado + textura.
+    juce::ColourGradient tolex (tolexTop, 0.0f, 0.0f, tolexBottom, 0.0f, (float) getHeight(), false);
+    g.setGradientFill (tolex);
+    g.fillAll();
+    g.setTiledImageFill (noise, 0, 0, 0.08f);
+    g.fillAll();
 
-    g.setColour (juce::Colours::orange);
-    g.setFont (22.0f);
-    g.drawFittedText ("FLANG", header.withTrimmedBottom (18), juce::Justification::centred, 1);
+    // Panel de laton.
+    auto plate = getLocalBounds().toFloat().reduced ((float) kPlateInset);
+    juce::ColourGradient brass (brassLight, plate.getCentreX(), plate.getY(),
+                                brassDark, plate.getCentreX(), plate.getBottom(), false);
+    g.setGradientFill (brass);
+    g.fillRoundedRectangle (plate, 10.0f);
 
-    g.setColour (juce::Colours::grey);
-    g.setFont (12.0f);
-    g.drawFittedText ("con Dulce de Leche", header.removeFromBottom (18),
-                      juce::Justification::centred, 1);
+    g.setColour (juce::Colours::black.withAlpha (0.5f));
+    g.drawRoundedRectangle (plate, 10.0f, 2.0f);
+    g.setColour (juce::Colours::white.withAlpha (0.18f));
+    g.drawRoundedRectangle (plate.reduced (2.5f), 8.0f, 1.0f);
+
+    // Tornillos.
+    drawScrew (g, { plate.getX() + 18.0f,         plate.getY() + 18.0f });
+    drawScrew (g, { plate.getRight() - 18.0f,     plate.getY() + 18.0f });
+    drawScrew (g, { plate.getX() + 18.0f,         plate.getBottom() - 18.0f });
+    drawScrew (g, { plate.getRight() - 18.0f,     plate.getBottom() - 18.0f });
+
+    // Nameplate.
+    auto header = getLocalBounds().toFloat()
+                      .reduced ((float) (kPlateInset + kPlatePad))
+                      .removeFromTop ((float) kHeaderHeight);
+
+    g.setColour (engraved);
+    g.setFont (juce::Font (juce::FontOptions ("Snell Roundhand", 46.0f, juce::Font::plain)));
+    g.drawText ("Flang", header.removeFromTop (56.0f), juce::Justification::centred, false);
+
+    g.setFont (juce::Font (juce::FontOptions (13.0f)));
+    g.drawText ("con Dulce de Leche", header, juce::Justification::centred, false);
 }
 
 void FlangAudioProcessorEditor::resized()
 {
-    auto area = getLocalBounds().reduced (12);
-    area.removeFromTop (kHeaderHeight - 12);
+    auto content = getLocalBounds().reduced (kPlateInset + kPlatePad);
+    content.removeFromTop (kHeaderHeight);
 
     // Barra de presets + ayuda (abajo de todo).
-    auto presetRow = area.removeFromBottom (kPresetHeight);
+    auto presetRow = content.removeFromBottom (kPresetHeight);
     helpButton.setBounds (presetRow.removeFromRight (28));
     presetRow.removeFromRight (6);
     resetButton.setBounds (presetRow.removeFromRight (64));
@@ -238,7 +311,7 @@ void FlangAudioProcessorEditor::resized()
     presetBox.setBounds (presetRow);
 
     // Fila de selectores: Type | Oversample | Mode | Mod.
-    auto choiceRow = area.removeFromBottom (kChoicesHeight);
+    auto choiceRow = content.removeFromBottom (kChoicesHeight);
     const int cellW = choiceRow.getWidth() / 4;
 
     auto layoutChoice = [&] (Choice& choice)
@@ -257,12 +330,12 @@ void FlangAudioProcessorEditor::resized()
 
     // Perillas: 3 filas de 4 / 4 / 5.
     const std::array<int, kKnobRows> perRow { 4, 4, 5 };
-    const int rowHeight = area.getHeight() / kKnobRows;
+    const int rowHeight = content.getHeight() / kKnobRows;
     int index = 0;
 
     for (int row = 0; row < kKnobRows; ++row)
     {
-        auto rowArea = area.removeFromTop (rowHeight);
+        auto rowArea = content.removeFromTop (rowHeight);
         sectionLabels[(size_t) row].setBounds (rowArea.removeFromTop (kSectionHeight).reduced (6, 0));
 
         const int cellWidth = rowArea.getWidth() / perRow[(size_t) row];

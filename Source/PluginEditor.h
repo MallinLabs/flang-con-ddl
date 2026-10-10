@@ -5,17 +5,18 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "PluginProcessor.h"
 #include "PresetManager.h"
+#include "ui/FlangLookAndFeel.h"
 
 //==============================================================================
 /**
-    GUI organizada en 3 secciones (PREAMP / DRIVE / MOD) para domar la cantidad
-    de perillas, con tooltips y un boton de ayuda (?).
+    GUI con estetica de amplificador (tolex marron "dulce de leche" + panel de
+    laton + perillas marfil), organizada en 3 secciones (PREAMP / DRIVE / MOD).
 */
 class FlangAudioProcessorEditor : public juce::AudioProcessorEditor
 {
 public:
     explicit FlangAudioProcessorEditor (FlangAudioProcessor&);
-    ~FlangAudioProcessorEditor() override = default;
+    ~FlangAudioProcessorEditor() override;
 
     void paint (juce::Graphics&) override;
     void resized() override;
@@ -42,8 +43,12 @@ private:
     void refreshPresetList();
     void saveCurrentPreset();
     void showHelp();
+    void drawScrew (juce::Graphics& g, juce::Point<float> centre) const;
 
     FlangAudioProcessor& processorRef;
+    flang::ui::FlangLookAndFeel lnf;
+    juce::Image noise;
+
     std::array<Knob, 13> knobs;
     std::array<Choice, 3> choices;
     std::array<juce::Label, 3> sectionLabels;

@@ -10,8 +10,9 @@ y una sección de modulación conmutable **Chorus / Flanger** en true stereo.
 Estado actual: **Fase 4 — preamp + EQ + drive + chorus/flanger**. Procesa audio:
 Input, Bass, Mid, Treble, Drive (Type / Tone / Mix / Oversample), Mod (Mode
 Chorus/Flanger, Rate / Depth / Feedback / Mix / Spread, toggle on/off) y Output.
-La GUI está agrupada en secciones **PREAMP / DRIVE / MOD** con tooltips y ayuda (?).
-Incluye **presets** (8 factory + usuario) y **Reset**.
+La GUI está agrupada en secciones **PREAMP / DRIVE / MOD** con tooltips y ayuda (?),
+y tiene estética de **amplificador** (tolex marrón "dulce de leche" + panel de latón +
+perillas marfil). Incluye **presets** (8 factory + usuario) y **Reset**.
 
 ## Requisitos
 
