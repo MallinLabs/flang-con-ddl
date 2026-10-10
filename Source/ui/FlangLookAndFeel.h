@@ -38,7 +38,11 @@ public:
                            float sliderPos, float rotaryStartAngle, float rotaryEndAngle,
                            juce::Slider&) override
     {
-        auto bounds = juce::Rectangle<int> (x, y, width, height).toFloat().reduced (3.0f);
+        // Forzar area cuadrada para que la perilla sea perfectamente redonda.
+        const float side = (float) juce::jmin (width, height);
+        auto bounds = juce::Rectangle<int> (x, y, width, height).toFloat()
+                          .withSizeKeepingCentre (side, side)
+                          .reduced (2.0f);
         auto radius = juce::jmin (bounds.getWidth(), bounds.getHeight()) * 0.5f;
         auto centre = bounds.getCentre();
         const float angle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
@@ -49,10 +53,10 @@ public:
         {
             const float a = rotaryStartAngle + (float) i / (float) (ticks - 1)
                                                  * (rotaryEndAngle - rotaryStartAngle);
-            const juce::Point<float> p1 (centre.x + std::sin (a) * (radius + 2.5f),
-                                         centre.y - std::cos (a) * (radius + 2.5f));
-            const juce::Point<float> p2 (centre.x + std::sin (a) * (radius + 5.5f),
-                                         centre.y - std::cos (a) * (radius + 5.5f));
+            const juce::Point<float> p1 (centre.x + std::sin (a) * (radius + 1.5f),
+                                         centre.y - std::cos (a) * (radius + 1.5f));
+            const juce::Point<float> p2 (centre.x + std::sin (a) * (radius + 3.5f),
+                                         centre.y - std::cos (a) * (radius + 3.5f));
             g.setColour (colour::engraved.withAlpha (0.55f));
             g.drawLine ({ p1, p2 }, 1.0f);
         }

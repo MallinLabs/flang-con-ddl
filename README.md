@@ -7,14 +7,15 @@ y una sección de modulación conmutable **Chorus / Flanger** en true stereo.
 > La referencia sonora está inspirada en un ampli de estado sólido famoso por su
 > clean; el nombre y la identidad son originales.
 
-Estado actual: **preamp + EQ + drive cálido + chorus/flanger + reverb/echo**. Procesa
-audio: Input, Bass, Mid, Treble, Drive (Type Tube/Soft/Hard/Fold, Warmth, Tone, Mix,
-Oversample), Mod (Mode Chorus/Flanger, Rate / Depth / Feedback / Mix / Spread,
-toggle), Space (Reverb / Delay + orden Reverb>Echo / Echo>Reverb / Paralelo) y Output.
+Estado actual: **preamp + EQ + drive cálido (Tube) + cab + chorus/flanger + reverb/echo**.
+Procesa audio: Input, Bass, Mid, Treble, Drive (Type Tube/Soft/Hard/Fold, Warmth, Tone,
+Mix, Oversample), Cab (blend + Load IR), Mod (Mode Chorus/Flanger, Rate / Depth /
+Feedback / Mix / Spread, toggle), Space (Reverb / Decay / Delay / Time / Repeats,
+switch físico de orden Reverb>Echo / Echo>Reverb / Paralelo) y Output.
 
-La GUI tiene estética de **amplificador** (tolex marrón "dulce de leche" + panel de
-latón + perillas marfil), 4 secciones **PREAMP / DRIVE / MOD / SPACE**, tooltips y
-botón de ayuda (?). Incluye **presets** (10 factory + usuario) y **Reset**.
+La GUI tiene estética de **amplificador** (cabina marrón "dulce de leche" + panel de
+latón + perillas marfil redondas), 5 secciones **PREAMP / DRIVE / MOD / SPACE / CAB**,
+tooltips y botón de ayuda (?). Incluye **presets** (10 factory + usuario) y **Reset**.
 
 ## Requisitos
 
