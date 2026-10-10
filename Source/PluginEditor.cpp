@@ -7,7 +7,8 @@ namespace
     constexpr int kKnobRows      = 3;
     constexpr int kChoicesHeight = 56;
     constexpr int kPresetHeight  = 28;
-    constexpr int kMaxKnobSize   = 76;
+    constexpr int kSectionHeight = 16;
+    constexpr int kMaxKnobSize   = 72;
 }
 
 //==============================================================================
@@ -16,33 +17,68 @@ FlangAudioProcessorEditor::FlangAudioProcessorEditor (FlangAudioProcessor& p)
       processorRef (p),
       presets (p.apvts)
 {
-    // Preamp.
-    setupKnob (knobs[0],  "Input",  FlangAudioProcessor::inputGainID);
-    setupKnob (knobs[1],  "Bass",   FlangAudioProcessor::bassID);
-    setupKnob (knobs[2],  "Mid",    FlangAudioProcessor::midID);
-    setupKnob (knobs[3],  "Treble", FlangAudioProcessor::trebleID);
-    // Drive.
-    setupKnob (knobs[4],  "Drive",  FlangAudioProcessor::driveID);
-    setupKnob (knobs[5],  "Tone",   FlangAudioProcessor::driveToneID);
-    setupKnob (knobs[6],  "Mix",    FlangAudioProcessor::driveMixID);
-    setupKnob (knobs[7],  "Output", FlangAudioProcessor::outputGainID);
-    // Mod (chorus).
-    setupKnob (knobs[8],  "Rate",   FlangAudioProcessor::modRateID);
-    setupKnob (knobs[9],  "Depth",  FlangAudioProcessor::modDepthID);
-    setupKnob (knobs[10], "ModMix", FlangAudioProcessor::modMixID);
-    setupKnob (knobs[11], "Spread", FlangAudioProcessor::modSpreadID);
+    // --- PREAMP ---
+    setupKnob (knobs[0],  "Input",  FlangAudioProcessor::inputGainID,
+               "Input gain into the preamp (dB).");
+    setupKnob (knobs[1],  "Bass",   FlangAudioProcessor::bassID,
+               "Low shelf EQ (dB).");
+    setupKnob (knobs[2],  "Mid",    FlangAudioProcessor::midID,
+               "Mid peak EQ (dB).");
+    setupKnob (knobs[3],  "Treble", FlangAudioProcessor::trebleID,
+               "High shelf EQ (dB).");
 
-    setupChoice (choices[0], "Type",       FlangAudioProcessor::driveTypeID);
-    setupChoice (choices[1], "Oversample", FlangAudioProcessor::oversampleID);
+    // --- DRIVE ---
+    setupKnob (knobs[4],  "Drive",  FlangAudioProcessor::driveID,
+               "Amount of overdrive / distortion.");
+    setupKnob (knobs[5],  "Tone",   FlangAudioProcessor::driveToneID,
+               "Post-drive lowpass: left = dark, right = bright.");
+    setupKnob (knobs[6],  "Mix",    FlangAudioProcessor::driveMixID,
+               "Clean <-> driven blend (0 = clean amp).");
+    setupKnob (knobs[7],  "Output", FlangAudioProcessor::outputGainID,
+               "Output level (dB).");
+
+    // --- MOD ---
+    setupKnob (knobs[8],  "Rate",     FlangAudioProcessor::modRateID,
+               "Modulation speed (Hz).");
+    setupKnob (knobs[9],  "Depth",    FlangAudioProcessor::modDepthID,
+               "Modulation amount.");
+    setupKnob (knobs[10], "Feedback", FlangAudioProcessor::modFeedbackID,
+               "Resonance of the delay line (mostly for Flanger).");
+    setupKnob (knobs[11], "ModMix",   FlangAudioProcessor::modMixID,
+               "Modulation blend (0 = dry).");
+    setupKnob (knobs[12], "Spread",   FlangAudioProcessor::modSpreadID,
+               "Stereo LFO phase offset: 0 = mono, 1 = 180 degrees.");
+
+    // --- Selectores ---
+    setupChoice (choices[0], "Type",       FlangAudioProcessor::driveTypeID,
+                 "Distortion shape: Soft (tanh), Hard (clip), Fold (foldback).");
+    setupChoice (choices[1], "Oversample", FlangAudioProcessor::oversampleID,
+                 "Anti-aliasing oversampling factor (higher = cleaner).");
+    setupChoice (choices[2], "Mode",       FlangAudioProcessor::modModeID,
+                 "Chorus (subtle, wide) or Flanger (short delay + feedback, jet).");
 
     // Toggle de Mod.
     addAndMakeVisible (modToggle);
     modToggle.setColour (juce::ToggleButton::textColourId, juce::Colours::lightgrey);
+    modToggle.setTooltip ("Enable the modulation (chorus / flanger).");
     modAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
         processorRef.apvts, FlangAudioProcessor::modOnID, modToggle);
 
-    // Barra de presets.
+    // Titulos de seccion.
+    const juce::StringArray sectionNames { "PREAMP", "DRIVE", "MOD" };
+    for (size_t i = 0; i < sectionLabels.size(); ++i)
+    {
+        auto& label = sectionLabels[i];
+        label.setText (sectionNames[(int) i], juce::dontSendNotification);
+        label.setJustificationType (juce::Justification::centredLeft);
+        label.setColour (juce::Label::textColourId, juce::Colours::orange.withAlpha (0.85f));
+        label.setFont (juce::Font (juce::FontOptions (12.0f)));
+        addAndMakeVisible (label);
+    }
+
+    // Barra de presets + ayuda.
     addAndMakeVisible (presetBox);
+    presetBox.setTooltip ("Load a preset (factory or user).");
     presetBox.onChange = [this]
     {
         const int index = presetBox.getSelectedItemIndex();
@@ -52,11 +88,14 @@ FlangAudioProcessorEditor::FlangAudioProcessorEditor (FlangAudioProcessor& p)
 
     presetName.setText ("User Preset", false);
     presetName.setSelectAllWhenFocused (true);
+    presetName.setTooltip ("Name for the preset you save.");
     addAndMakeVisible (presetName);
 
+    saveButton.setTooltip ("Save the current settings as a user preset.");
     saveButton.onClick = [this] { saveCurrentPreset(); };
     addAndMakeVisible (saveButton);
 
+    resetButton.setTooltip ("Reset every control to its default.");
     resetButton.onClick = [this]
     {
         presets.resetAll();
@@ -64,21 +103,27 @@ FlangAudioProcessorEditor::FlangAudioProcessorEditor (FlangAudioProcessor& p)
     };
     addAndMakeVisible (resetButton);
 
+    helpButton.setTooltip ("What does each control do?");
+    helpButton.onClick = [this] { showHelp(); };
+    addAndMakeVisible (helpButton);
+
     refreshPresetList();
 
-    setSize (620, 540);
+    setSize (640, 560);
 }
 
 //==============================================================================
 void FlangAudioProcessorEditor::setupKnob (Knob& knob,
                                            const juce::String& name,
-                                           const char* paramID)
+                                           const char* paramID,
+                                           const juce::String& tooltip)
 {
     knob.slider.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
     knob.slider.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 72, 18);
     knob.slider.setRotaryParameters (juce::MathConstants<float>::pi * 1.25f,
                                      juce::MathConstants<float>::pi * 2.75f,
                                      true);
+    knob.slider.setTooltip (tooltip);
     addAndMakeVisible (knob.slider);
 
     knob.label.setText (name, juce::dontSendNotification);
@@ -92,9 +137,11 @@ void FlangAudioProcessorEditor::setupKnob (Knob& knob,
 
 void FlangAudioProcessorEditor::setupChoice (Choice& choice,
                                              const juce::String& name,
-                                             const char* paramID)
+                                             const char* paramID,
+                                             const juce::String& tooltip)
 {
     addAndMakeVisible (choice.box);
+    choice.box.setTooltip (tooltip);
 
     choice.label.setText (name, juce::dontSendNotification);
     choice.label.setJustificationType (juce::Justification::centred);
@@ -130,6 +177,32 @@ void FlangAudioProcessorEditor::saveCurrentPreset()
         presetBox.setSelectedItemIndex (presetBox.getNumItems() - 1, juce::dontSendNotification);
 }
 
+void FlangAudioProcessorEditor::showHelp()
+{
+    const juce::String text =
+        "PREAMP\n"
+        "  Input - gain into the amp\n"
+        "  Bass / Mid / Treble - 3-band EQ (dB)\n\n"
+        "DRIVE\n"
+        "  Drive - amount of distortion\n"
+        "  Tone - post-drive brightness\n"
+        "  Mix - clean <-> driven (0 = clean amp)\n"
+        "  Output - output level\n\n"
+        "MOD\n"
+        "  Mod - enable chorus / flanger\n"
+        "  Mode - Chorus (subtle, wide) or Flanger (short delay + feedback, jet)\n"
+        "  Rate - modulation speed\n"
+        "  Depth - modulation amount\n"
+        "  Feedback - resonance (mostly for Flanger)\n"
+        "  Mod Mix - modulation blend\n"
+        "  Spread - stereo width of the modulation\n\n"
+        "Type / Oversample - distortion shape and anti-aliasing quality";
+
+    juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::InfoIcon,
+                                            "Flang con Dulce de Leche - controls",
+                                            text);
+}
+
 //==============================================================================
 void FlangAudioProcessorEditor::paint (juce::Graphics& g)
 {
@@ -152,44 +225,52 @@ void FlangAudioProcessorEditor::resized()
     auto area = getLocalBounds().reduced (12);
     area.removeFromTop (kHeaderHeight - 12);
 
-    // Barra de presets (abajo de todo).
+    // Barra de presets + ayuda (abajo de todo).
     auto presetRow = area.removeFromBottom (kPresetHeight);
-    resetButton.setBounds (presetRow.removeFromRight (72));
+    helpButton.setBounds (presetRow.removeFromRight (28));
     presetRow.removeFromRight (6);
-    saveButton.setBounds (presetRow.removeFromRight (72));
+    resetButton.setBounds (presetRow.removeFromRight (64));
+    presetRow.removeFromRight (6);
+    saveButton.setBounds (presetRow.removeFromRight (64));
     presetRow.removeFromRight (6);
     presetName.setBounds (presetRow.removeFromRight (150));
     presetRow.removeFromRight (6);
     presetBox.setBounds (presetRow);
 
-    // Fila de selectores: Type | Oversample | Mod.
+    // Fila de selectores: Type | Oversample | Mode | Mod.
     auto choiceRow = area.removeFromBottom (kChoicesHeight);
-    const int cellW = choiceRow.getWidth() / 3;
+    const int cellW = choiceRow.getWidth() / 4;
 
-    auto typeCell = choiceRow.removeFromLeft (cellW).reduced (16, 0);
-    choices[0].label.setBounds (typeCell.removeFromTop (18));
-    choices[0].box.setBounds (typeCell.withSizeKeepingCentre (typeCell.getWidth(), 26));
+    auto layoutChoice = [&] (Choice& choice)
+    {
+        auto cell = choiceRow.removeFromLeft (cellW).reduced (10, 0);
+        choice.label.setBounds (cell.removeFromTop (18));
+        choice.box.setBounds (cell.withSizeKeepingCentre (cell.getWidth(), 26));
+    };
 
-    auto osCell = choiceRow.removeFromLeft (cellW).reduced (16, 0);
-    choices[1].label.setBounds (osCell.removeFromTop (18));
-    choices[1].box.setBounds (osCell.withSizeKeepingCentre (osCell.getWidth(), 26));
+    layoutChoice (choices[0]);
+    layoutChoice (choices[1]);
+    layoutChoice (choices[2]);
 
-    auto modCell = choiceRow.reduced (16, 0);
+    auto modCell = choiceRow.reduced (10, 0);
     modToggle.setBounds (modCell.withSizeKeepingCentre (modCell.getWidth(), 26));
 
-    // Perillas (3 filas x 4).
-    const int perRow    = (int) knobs.size() / kKnobRows;
+    // Perillas: 3 filas de 4 / 4 / 5.
+    const std::array<int, kKnobRows> perRow { 4, 4, 5 };
     const int rowHeight = area.getHeight() / kKnobRows;
+    int index = 0;
 
     for (int row = 0; row < kKnobRows; ++row)
     {
         auto rowArea = area.removeFromTop (rowHeight);
-        const int cellWidth = rowArea.getWidth() / perRow;
+        sectionLabels[(size_t) row].setBounds (rowArea.removeFromTop (kSectionHeight).reduced (6, 0));
 
-        for (int col = 0; col < perRow; ++col)
+        const int cellWidth = rowArea.getWidth() / perRow[(size_t) row];
+
+        for (int col = 0; col < perRow[(size_t) row]; ++col)
         {
             auto cell = rowArea.removeFromLeft (cellWidth);
-            auto& knob = knobs[(size_t) (row * perRow + col)];
+            auto& knob = knobs[(size_t) index++];
 
             knob.label.setBounds (cell.removeFromTop (18));
 

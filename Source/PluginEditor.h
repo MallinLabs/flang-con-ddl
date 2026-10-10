@@ -8,8 +8,8 @@
 
 //==============================================================================
 /**
-    GUI: 12 perillas (preamp / drive / mod), 2 selectores (Type / Oversample),
-    un toggle de Mod, y una barra de presets (combo + nombre + Save + Reset).
+    GUI organizada en 3 secciones (PREAMP / DRIVE / MOD) para domar la cantidad
+    de perillas, con tooltips y un boton de ayuda (?).
 */
 class FlangAudioProcessorEditor : public juce::AudioProcessorEditor
 {
@@ -35,14 +35,18 @@ private:
         std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> attachment;
     };
 
-    void setupKnob (Knob& knob, const juce::String& name, const char* paramID);
-    void setupChoice (Choice& choice, const juce::String& name, const char* paramID);
+    void setupKnob (Knob& knob, const juce::String& name, const char* paramID,
+                    const juce::String& tooltip);
+    void setupChoice (Choice& choice, const juce::String& name, const char* paramID,
+                      const juce::String& tooltip);
     void refreshPresetList();
     void saveCurrentPreset();
+    void showHelp();
 
     FlangAudioProcessor& processorRef;
-    std::array<Knob, 12> knobs;
-    std::array<Choice, 2> choices;
+    std::array<Knob, 13> knobs;
+    std::array<Choice, 3> choices;
+    std::array<juce::Label, 3> sectionLabels;
 
     juce::ToggleButton modToggle { "Mod" };
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> modAttachment;
@@ -51,7 +55,10 @@ private:
     juce::TextEditor presetName;
     juce::TextButton saveButton { "Save" };
     juce::TextButton resetButton { "Reset" };
+    juce::TextButton helpButton { "?" };
     flang::PresetManager presets;
+
+    juce::TooltipWindow tooltipWindow { this, 700 };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FlangAudioProcessorEditor)
 };
