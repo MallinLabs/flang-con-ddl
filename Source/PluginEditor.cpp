@@ -211,6 +211,14 @@ void FlangAudioProcessorEditor::setupChoice (Choice& choice,
     choice.box.setColour (juce::ComboBox::backgroundColourId, juce::Colours::transparentBlack);
     choice.box.setColour (juce::ComboBox::outlineColourId, juce::Colours::transparentBlack);
 
+    // ComboBoxParameterAttachment NO carga los items: hay que agregarlos a mano.
+    if (auto* param = processorRef.apvts.getParameter (paramID))
+    {
+        const auto items = param->getAllValueStrings();
+        if (! items.isEmpty())
+            choice.box.addItemList (items, 1);
+    }
+
     choice.label.setText (name, juce::dontSendNotification);
     choice.label.setJustificationType (juce::Justification::centred);
     choice.label.setColour (juce::Label::textColourId, engraved);

@@ -1,7 +1,23 @@
+#include <cmath>
+
 #include <juce_audio_formats/juce_audio_formats.h>
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+
+//==============================================================================
+namespace
+{
+    // Soft clip de salida: lineal por debajo de 0.7, satura suave arriba.
+    // Evita el recorte duro del host ("cruje") al empujar perillas.
+    inline float softClip (float x) noexcept
+    {
+        constexpr float t = 0.7f;
+        if (x >  t) return  t + (1.0f - t) * std::tanh ((x - t) / (1.0f - t));
+        if (x < -t) return -t + (1.0f - t) * std::tanh ((x + t) / (1.0f - t));
+        return x;
+    }
+}
 
 //==============================================================================
 FlangAudioProcessor::FlangAudioProcessor()
@@ -211,9 +227,16 @@ void FlangAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     space.setRouting (static_cast<flang::dsp::SpaceRouting> ((int) param (spaceRoutingID)));
     space.process (buffer);
 
-    // Output gain.
+    // Output gain + soft clip de seguridad.
     outputGain.setTargetValue (juce::Decibels::decibelsToGain (param (outputGainID)));
     outputGain.applyGain (buffer, numSamples);
+
+    for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
+    {
+        auto* d = buffer.getWritePointer (ch);
+        for (int i = 0; i < numSamples; ++i)
+            d[i] = softClip (d[i]);
+    }
 }
 
 //==============================================================================

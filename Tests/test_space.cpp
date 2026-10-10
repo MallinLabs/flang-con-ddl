@@ -206,3 +206,44 @@ TEST_CASE ("Delay Repeats agrega repeticiones", "[dsp][space]")
 
     REQUIRE (lateEnergy (0.8f) > lateEnergy (0.0f));
 }
+
+TEST_CASE ("Paralelo = dry + reverbWet + delayWet", "[dsp][space]")
+{
+    auto run = [] (float rv, float dl)
+    {
+        flang::dsp::SpaceFX space;
+        space.prepare (kSr, 2, 4096);
+        space.setReverbAmount (rv);
+        space.setReverbDecay (0.5f);
+        space.setDelayAmount (dl);
+        space.setDelayTimeMs (100.0f);
+        space.setDelayFeedback (0.3f);
+        space.setRouting (flang::dsp::SpaceRouting::Parallel);
+
+        juce::AudioBuffer<float> last (2, 4096);
+        for (int block = 0; block < 4; ++block)
+        {
+            juce::AudioBuffer<float> buffer (2, 4096);
+            fillSine (buffer, 300.0f, 0.3f);
+            space.process (buffer);
+            last.makeCopyOf (buffer);
+        }
+        return last;
+    };
+
+    // p(rv,dl) debe ser dry + rWet + dWet == p(rv,0) + p(0,dl) - p(0,0)
+    const auto p00 = run (0.0f, 0.0f);
+    const auto p10 = run (0.6f, 0.0f);
+    const auto p01 = run (0.0f, 0.5f);
+    const auto p11 = run (0.6f, 0.5f);
+
+    float maxErr = 0.0f;
+    for (int ch = 0; ch < 2; ++ch)
+        for (int i = 0; i < p11.getNumSamples(); ++i)
+        {
+            const float expected = p10.getSample (ch, i) + p01.getSample (ch, i) - p00.getSample (ch, i);
+            maxErr = juce::jmax (maxErr, std::abs (p11.getSample (ch, i) - expected));
+        }
+
+    REQUIRE (maxErr < 1e-4f);
+}
