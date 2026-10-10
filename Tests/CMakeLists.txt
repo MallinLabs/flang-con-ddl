@@ -14,6 +14,7 @@ target_sources(FlangTests PRIVATE
     test_preamp.cpp
     test_drive.cpp
     test_mod.cpp
+    test_space.cpp
 )
 
 target_include_directories(FlangTests PRIVATE ${CMAKE_SOURCE_DIR}/Source)
