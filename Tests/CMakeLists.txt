@@ -12,6 +12,7 @@ juce_add_console_app(FlangTests PRODUCT_NAME "FlangTests")
 target_sources(FlangTests PRIVATE
     test_tone_stack.cpp
     test_preamp.cpp
+    test_drive.cpp
 )
 
 target_include_directories(FlangTests PRIVATE ${CMAKE_SOURCE_DIR}/Source)

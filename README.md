@@ -7,8 +7,9 @@ y una sección de modulación conmutable **Chorus / Flanger** en true stereo.
 > La referencia sonora está inspirada en un ampli de estado sólido famoso por su
 > clean; el nombre y la identidad son originales.
 
-Estado actual: **Fase 1 — preamp + EQ**. Ya procesa audio: Input, Bass, Mid,
-Treble y Output. Todavía no hay distorsión ni modulación.
+Estado actual: **Fase 2 — preamp + EQ + drive**. Procesa audio: Input, Bass, Mid,
+Treble, Drive (Type / Tone / Mix / Oversample) y Output. Todavía no hay modulación
+(chorus/flanger).
 
 ## Requisitos
 
@@ -47,7 +48,7 @@ Live: procesan señales conocidas y verifican la respuesta.
 
 | Path | Qué |
 |---|---|
-| `Source/dsp/` | Núcleo DSP puro (ToneStack, Preamp) — testeable sin host |
+| `Source/dsp/` | Núcleo DSP puro (ToneStack, Preamp, Drive) — testeable sin host |
 | `Source/PluginProcessor.*` | Adapter hacia el host (JUCE) |
 | `Source/PluginEditor.*` | GUI |
 | `Tests/` | Tests offline (Catch2) |
@@ -58,7 +59,7 @@ Live: procesan señales conocidas y verifican la respuesta.
 |---|---|
 | 0 | Scaffold + passthrough ✅ |
 | 1 | Preamp + tone stack (EQ 3 bandas) ✅ |
-| 2 | Drive (waveshaper + oversampling + gain comp) |
+| 2 | Drive (waveshaper soft/hard/fold + oversampling 2x/4x/8x + DC block) ✅ |
 | 3 | ModEngine chorus (true-stereo) |
 | 4 | Modo flanger |
 | 5 | Cab IR (convolución) |

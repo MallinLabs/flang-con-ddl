@@ -4,7 +4,9 @@
 namespace
 {
     constexpr int kHeaderHeight = 60;
-    constexpr int kMaxKnobSize  = 92;
+    constexpr int kKnobRows     = 2;
+    constexpr int kChoicesHeight = 56;
+    constexpr int kMaxKnobSize  = 80;
 }
 
 //==============================================================================
@@ -13,12 +15,18 @@ FlangAudioProcessorEditor::FlangAudioProcessorEditor (FlangAudioProcessor& p)
       processorRef (p)
 {
     setupKnob (knobs[0], "Input",  FlangAudioProcessor::inputGainID);
-    setupKnob (knobs[1], "Bass",   FlangAudioProcessor::bassID);
-    setupKnob (knobs[2], "Mid",    FlangAudioProcessor::midID);
-    setupKnob (knobs[3], "Treble", FlangAudioProcessor::trebleID);
-    setupKnob (knobs[4], "Output", FlangAudioProcessor::outputGainID);
+    setupKnob (knobs[1], "Drive",  FlangAudioProcessor::driveID);
+    setupKnob (knobs[2], "Tone",   FlangAudioProcessor::driveToneID);
+    setupKnob (knobs[3], "Mix",    FlangAudioProcessor::driveMixID);
+    setupKnob (knobs[4], "Bass",   FlangAudioProcessor::bassID);
+    setupKnob (knobs[5], "Mid",    FlangAudioProcessor::midID);
+    setupKnob (knobs[6], "Treble", FlangAudioProcessor::trebleID);
+    setupKnob (knobs[7], "Output", FlangAudioProcessor::outputGainID);
 
-    setSize (560, 240);
+    setupChoice (choices[0], "Type",       FlangAudioProcessor::driveTypeID);
+    setupChoice (choices[1], "Oversample", FlangAudioProcessor::oversampleID);
+
+    setSize (620, 400);
 }
 
 //==============================================================================
@@ -40,6 +48,21 @@ void FlangAudioProcessorEditor::setupKnob (Knob& knob,
 
     knob.attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
         processorRef.apvts, paramID, knob.slider);
+}
+
+void FlangAudioProcessorEditor::setupChoice (Choice& choice,
+                                             const juce::String& name,
+                                             const char* paramID)
+{
+    addAndMakeVisible (choice.box);
+
+    choice.label.setText (name, juce::dontSendNotification);
+    choice.label.setJustificationType (juce::Justification::centred);
+    choice.label.setColour (juce::Label::textColourId, juce::Colours::lightgrey);
+    addAndMakeVisible (choice.label);
+
+    choice.attachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment> (
+        processorRef.apvts, paramID, choice.box);
 }
 
 //==============================================================================
@@ -64,14 +87,33 @@ void FlangAudioProcessorEditor::resized()
     auto area = getLocalBounds().reduced (12);
     area.removeFromTop (kHeaderHeight - 12);
 
-    const int cellWidth = area.getWidth() / (int) knobs.size();
+    auto choiceRow = area.removeFromBottom (kChoicesHeight);
+    const int perChoice = choiceRow.getWidth() / (int) choices.size();
 
-    for (auto& knob : knobs)
+    for (auto& choice : choices)
     {
-        auto cell = area.removeFromLeft (cellWidth);
-        knob.label.setBounds (cell.removeFromTop (18));
+        auto cell = choiceRow.removeFromLeft (perChoice).reduced (20, 0);
+        choice.label.setBounds (cell.removeFromTop (18));
+        choice.box.setBounds (cell.withSizeKeepingCentre (cell.getWidth(), 26));
+    }
 
-        const int size = juce::jmin (cell.getWidth(), cell.getHeight(), kMaxKnobSize);
-        knob.slider.setBounds (cell.withSizeKeepingCentre (size, size));
+    const int perRow   = (int) knobs.size() / kKnobRows;
+    const int rowHeight = area.getHeight() / kKnobRows;
+
+    for (int row = 0; row < kKnobRows; ++row)
+    {
+        auto rowArea = area.removeFromTop (rowHeight);
+        const int cellWidth = rowArea.getWidth() / perRow;
+
+        for (int col = 0; col < perRow; ++col)
+        {
+            auto cell = rowArea.removeFromLeft (cellWidth);
+            auto& knob = knobs[(size_t) (row * perRow + col)];
+
+            knob.label.setBounds (cell.removeFromTop (18));
+
+            const int size = juce::jmin (cell.getWidth(), cell.getHeight(), kMaxKnobSize);
+            knob.slider.setBounds (cell.withSizeKeepingCentre (size, size));
+        }
     }
 }
