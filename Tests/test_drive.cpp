@@ -136,3 +136,37 @@ TEST_CASE ("Drive nunca produce NaN/Inf con entrada extrema", "[dsp][drive]")
         for (int i = 0; i < 256; ++i)
             REQUIRE (std::isfinite (buffer.getSample (ch, i)));
 }
+
+TEST_CASE ("Tube genera armonicos pares (calidez)", "[dsp][drive]")
+{
+    auto secondHarmonicRatio = [] (flang::dsp::DriveShape shape, float warmth)
+    {
+        flang::dsp::Drive drive;
+        constexpr int len = 32768;
+        drive.prepare (kSr, 1, len);
+        drive.setOversamplingMode (2);
+        drive.setShape (shape);
+        drive.setWarmth (warmth);
+        drive.setDriveAmount (0.7f);
+        drive.setTone (1.0f);
+        drive.setMix (1.0f);
+
+        juce::AudioBuffer<float> buffer (1, len);
+        auto* d = buffer.getWritePointer (0);
+        for (int i = 0; i < len; ++i)
+            d[i] = std::sin (2.0f * juce::MathConstants<float>::pi * 400.0f * (float) i / (float) kSr);
+
+        drive.process (buffer);
+
+        const int skip = 8192;
+        const float fundamental = goertzel (buffer.getReadPointer (0) + skip, len - skip, 400.0f);
+        const float second      = goertzel (buffer.getReadPointer (0) + skip, len - skip, 800.0f);
+        return second / juce::jmax (1.0e-6f, fundamental);
+    };
+
+    const float tube = secondHarmonicRatio (flang::dsp::DriveShape::Tube, 1.0f);
+    const float soft = secondHarmonicRatio (flang::dsp::DriveShape::Soft, 0.0f);
+
+    REQUIRE (tube > 0.05f);        // el tubo genera 2do armonico (calidez)
+    REQUIRE (tube > soft * 3.0f);  // mucho mas que el shaping simetrico
+}
