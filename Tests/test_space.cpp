@@ -21,6 +21,23 @@ namespace
                                        * (float) i / (float) kSr);
         }
     }
+
+    // Seno de fase continua (a diferencia de fillSine, no reinicia la fase por bloque).
+    std::vector<float> makeContinuousSine (int numSamples, float freq, float amp)
+    {
+        std::vector<float> v ((size_t) numSamples);
+        for (int i = 0; i < numSamples; ++i)
+            v[(size_t) i] = amp * std::sin (2.0f * juce::MathConstants<float>::pi * freq
+                                            * (float) i / (float) kSr);
+        return v;
+    }
+
+    void fillFromContinuous (juce::AudioBuffer<float>& buffer, const std::vector<float>& sig, int start)
+    {
+        for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
+            for (int i = 0; i < buffer.getNumSamples(); ++i)
+                buffer.setSample (ch, i, sig[(size_t) (start + i)]);
+    }
 }
 
 //==============================================================================
@@ -246,4 +263,74 @@ TEST_CASE ("Paralelo = dry + reverbWet + delayWet", "[dsp][space]")
         }
 
     REQUIRE (maxErr < 1e-4f);
+}
+
+TEST_CASE ("Cambiar el Delay Amount de golpe no produce clicks", "[dsp][space]")
+{
+    flang::dsp::SpaceFX space;
+    constexpr int blockSize = 2048, blocks = 30;
+    space.prepare (kSr, 2, blockSize);
+    space.setReverbAmount (0.0f);
+    space.setDelayTimeMs (150.0f);
+    space.setDelayFeedback (0.0f);
+    space.setRouting (flang::dsp::SpaceRouting::ReverbIntoEcho);
+    space.setDelayAmount (0.0f);
+
+    const auto sig = makeContinuousSine (blocks * blockSize, 300.0f, 0.3f);
+    std::vector<float> out;
+
+    for (int block = 0; block < blocks; ++block)
+    {
+        if (block == 15)
+            space.setDelayAmount (1.0f);   // salto 0 -> 1
+
+        juce::AudioBuffer<float> buffer (2, blockSize);
+        fillFromContinuous (buffer, sig, block * blockSize);
+        space.process (buffer);
+
+        for (int i = 0; i < blockSize; ++i)
+            out.push_back (buffer.getSample (0, i));
+    }
+
+    float maxJump = 0.0f; size_t mi = 0;
+    for (size_t i = 1; i < out.size(); ++i)
+        if (std::abs (out[i] - out[i - 1]) > maxJump) { maxJump = std::abs (out[i] - out[i - 1]); mi = i; }
+
+    INFO ("amount change: max jump " << maxJump << " at " << mi);
+    REQUIRE (maxJump < 0.1f);   // sin smoothing el wet apareceria de golpe (click ~0.3+)
+}
+
+TEST_CASE ("Cambiar el Delay Time de golpe no produce clicks", "[dsp][space]")
+{
+    flang::dsp::SpaceFX space;
+    constexpr int blockSize = 2048, blocks = 40;
+    space.prepare (kSr, 2, blockSize);
+    space.setReverbAmount (0.0f);
+    space.setDelayAmount (1.0f);
+    space.setDelayTimeMs (100.0f);
+    space.setDelayFeedback (0.0f);
+    space.setRouting (flang::dsp::SpaceRouting::ReverbIntoEcho);
+
+    const auto sig = makeContinuousSine (blocks * blockSize, 300.0f, 0.3f);
+    std::vector<float> out;
+
+    for (int block = 0; block < blocks; ++block)
+    {
+        if (block == 30)
+            space.setDelayTimeMs (300.0f);   // cambio brusco
+
+        juce::AudioBuffer<float> buffer (2, blockSize);
+        fillFromContinuous (buffer, sig, block * blockSize);
+        space.process (buffer);
+
+        for (int i = 0; i < blockSize; ++i)
+            out.push_back (buffer.getSample (0, i));
+    }
+
+    float maxJump = 0.0f; size_t mi = 0;
+    for (size_t i = 1; i < out.size(); ++i)
+        if (std::abs (out[i] - out[i - 1]) > maxJump) { maxJump = std::abs (out[i] - out[i - 1]); mi = i; }
+
+    INFO ("time change: max jump " << maxJump << " at " << mi);
+    REQUIRE (maxJump < 0.1f);
 }

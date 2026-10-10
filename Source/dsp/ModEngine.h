@@ -17,6 +17,9 @@ namespace flang::dsp
     copia retardada cuyo delay se mueve con el LFO. El truco estelar es el
     **desfase del LFO entre canales** (spread), que genera el ancho estereo 3D.
 
+    El delay modulado por canal esta **suavizado**: mover depth/spread/mix de
+    golpe no clickea (el delay glidea).
+
     Nucleo puro: no depende del host.
 */
 class ModEngine
@@ -38,6 +41,19 @@ public:
         writeIndex.assign ((size_t) channels, 0);
         channelPhaseOffset.assign ((size_t) channels, 0.0);
 
+        delaySamplesSm.assign ((size_t) channels,
+                               juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear>());
+        for (auto& s : delaySamplesSm)
+        {
+            s.reset (sampleRate, 0.005);
+            s.setCurrentAndTargetValue (centreDelayMs * 0.001f * (float) sampleRate);
+        }
+
+        mixSm.reset (sampleRate, 0.02);
+        mixSm.setCurrentAndTargetValue (mix);
+        feedbackSm.reset (sampleRate, 0.02);
+        feedbackSm.setCurrentAndTargetValue (feedback);
+
         updatePhaseOffsets();
         reset();
     }
@@ -52,11 +68,21 @@ public:
     }
 
     //==========================================================================
-    void setRate (float hz) noexcept        { rate = juce::jlimit (0.0f, 20.0f, hz); }
+    void setRate (float hz) noexcept          { rate = juce::jlimit (0.0f, 20.0f, hz); }
     void setDepth (float normalized) noexcept { depth = juce::jlimit (0.0f, 1.0f, normalized); }
-    void setMix (float normalized) noexcept   { mix = juce::jlimit (0.0f, 1.0f, normalized); }
-    void setFeedback (float f) noexcept       { feedback = juce::jlimit (-0.95f, 0.95f, f); }
     void setCentreDelayMs (float ms) noexcept { centreDelayMs = juce::jlimit (0.1f, (float) kMaxDelayMs - 1.0f, ms); }
+
+    void setMix (float normalized) noexcept
+    {
+        mix = juce::jlimit (0.0f, 1.0f, normalized);
+        mixSm.setTargetValue (mix);
+    }
+
+    void setFeedback (float f) noexcept
+    {
+        feedback = juce::jlimit (-0.95f, 0.95f, f);
+        feedbackSm.setTargetValue (feedback);
+    }
 
     void setSpread (float normalized) noexcept
     {
@@ -82,22 +108,26 @@ public:
 
         for (int i = 0; i < numSamples; ++i)
         {
+            const float mixValue = mixSm.getNextValue();
+            const float fbValue  = feedbackSm.getNextValue();
+
             for (int ch = 0; ch < numCh; ++ch)
             {
                 const auto lfo = (float) std::sin (juce::MathConstants<double>::twoPi
                                                    * (phase + channelPhaseOffset[(size_t) ch]));
 
-                float delayMs = centreDelayMs + depthMs * lfo;
-                delayMs = juce::jlimit (0.1f, (float) (bufferSize - 2) * 1000.0f / (float) sampleRate, delayMs);
-                const float delaySamples = delayMs * 0.001f * (float) sampleRate;
+                const float targetMs = juce::jlimit (0.1f, (float) kMaxDelayMs - 1.0f,
+                                                     centreDelayMs + depthMs * lfo);
+                delaySamplesSm[(size_t) ch].setTargetValue (targetMs * 0.001f * (float) sampleRate);
+                const float dSamples = delaySamplesSm[(size_t) ch].getNextValue();
 
                 auto* d = buffer.getWritePointer (ch);
                 const float dry = d[i];
 
-                const float delayed = readDelay (ch, delaySamples);
-                write (ch, dry + feedback * delayed);
+                const float delayed = readDelay (ch, juce::jlimit (1.0f, (float) (bufferSize - 2), dSamples));
+                write (ch, dry + fbValue * delayed);
 
-                d[i] = dry + mix * (delayed - dry);
+                d[i] = dry + mixValue * (delayed - dry);
             }
 
             phase += phaseIncrement;
@@ -153,6 +183,10 @@ private:
     std::vector<double> channelPhaseOffset;
     std::vector<std::vector<float>> buffers;
     std::vector<int> writeIndex;
+
+    std::vector<juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear>> delaySamplesSm;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> mixSm { 0.0f };
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> feedbackSm { 0.0f };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ModEngine)
 };
