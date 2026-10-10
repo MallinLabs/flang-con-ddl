@@ -98,87 +98,111 @@ private:
         namespace p = flang::params;
 
         return {
-            { "Clean JC",       { { p::drive, 0.0f },  { p::driveMix, 0.0f } } },
+            { "Clean JC",       { { p::drive, 0.0f },   { p::driveMix, 0.0f } } },
 
-            { "JC Chorus",      { { p::drive, 0.0f },  { p::driveMix, 0.0f },
-                                  { p::modOn, 1.0f },  { p::modMode, 0.0f }, { p::modRate, 0.5f },
+            { "Studio DI",      { { p::drive, 0.15f },  { p::driveMix, 0.25f }, { p::driveType, 3.0f },
+                                  { p::warmth, 0.6f },  { p::driveTone, 0.8f } } },
+
+            { "Amped Clean",    { { p::drive, 0.1f },   { p::driveMix, 0.2f }, { p::driveType, 3.0f },
+                                  { p::warmth, 0.6f },  { p::cabMix, 1.0f } } },
+
+            { "JC Chorus",      { { p::modOn, 1.0f },   { p::modMode, 0.0f }, { p::modRate, 0.5f },
                                   { p::modDepth, 0.5f }, { p::modMix, 0.5f }, { p::modSpread, 1.0f } } },
 
-            { "Crunch",         { { p::drive, 0.4f },  { p::driveMix, 0.7f },
-                                  { p::driveType, 3.0f }, { p::warmth, 0.6f }, { p::driveTone, 0.7f } } },
+            { "Surf Clean",     { { p::bass, 3.0f },    { p::treble, 6.0f },
+                                  { p::drive, 0.1f },   { p::driveMix, 0.15f }, { p::driveType, 3.0f },
+                                  { p::cabMix, 0.85f },
+                                  { p::modOn, 1.0f },   { p::modMode, 0.0f }, { p::modRate, 0.8f },
+                                  { p::modDepth, 0.4f }, { p::modMix, 0.4f }, { p::modSpread, 1.0f },
+                                  { p::reverbAmount, 0.5f }, { p::reverbDecay, 0.7f } } },
 
-            { "Tube Lead",      { { p::drive, 0.85f }, { p::driveMix, 1.0f },
-                                  { p::driveType, 3.0f }, { p::warmth, 0.5f }, { p::driveTone, 0.5f } } },
-
-            { "Fuzz",           { { p::drive, 1.0f },  { p::driveMix, 1.0f },
-                                  { p::driveType, 2.0f }, { p::driveTone, 0.4f } } },
-
-            { "Scooped",        { { p::bass, 6.0f },   { p::mid, -6.0f }, { p::treble, 4.0f },
-                                  { p::drive, 0.3f },  { p::driveMix, 0.6f }, { p::driveType, 3.0f } } },
-
-            { "Jet Flanger",    { { p::drive, 0.6f },  { p::driveMix, 0.8f }, { p::driveType, 3.0f },
-                                  { p::warmth, 0.5f },
-                                  { p::modOn, 1.0f },  { p::modMode, 1.0f }, { p::modRate, 0.3f },
-                                  { p::modDepth, 0.8f }, { p::modFeedback, 0.7f },
-                                  { p::modMix, 0.6f }, { p::modSpread, 1.0f } } },
-
-            { "Doom",           { { p::bass, 4.0f },   { p::mid, -4.0f },
-                                  { p::drive, 1.0f },  { p::driveMix, 1.0f }, { p::driveType, 2.0f },
-                                  { p::driveTone, 0.3f },
-                                  { p::modOn, 1.0f },  { p::modMode, 1.0f }, { p::modRate, 0.2f },
-                                  { p::modDepth, 0.6f }, { p::modFeedback, 0.5f }, { p::modMix, 0.5f } } },
-
-            { "Ambient Clean",  { { p::drive, 0.2f },  { p::driveMix, 0.3f }, { p::driveType, 3.0f },
-                                  { p::warmth, 0.6f },
-                                  { p::modOn, 1.0f },  { p::modMode, 0.0f }, { p::modRate, 0.4f },
-                                  { p::modDepth, 0.5f }, { p::modMix, 0.4f },
-                                  { p::reverbAmount, 0.5f }, { p::delayAmount, 0.35f },
-                                  { p::spaceRouting, 2.0f } } },
-
-            { "Cathedral Lead", { { p::drive, 0.5f },  { p::driveMix, 0.75f }, { p::driveType, 3.0f },
-                                  { p::warmth, 0.6f },
-                                  { p::reverbAmount, 0.6f }, { p::delayAmount, 0.5f },
-                                  { p::spaceRouting, 1.0f } } },
-
-            { "Amped Clean",    { { p::drive, 0.1f },  { p::driveMix, 0.2f }, { p::driveType, 3.0f },
-                                  { p::warmth, 0.6f }, { p::cabMix, 1.0f } } },
-
-            { "Amped Crunch",   { { p::drive, 0.45f }, { p::driveMix, 0.75f }, { p::driveType, 3.0f },
-                                  { p::warmth, 0.6f }, { p::cabMix, 1.0f } } },
-
-            { "Wet Shimmer",    { { p::bass, 2.0f },   { p::treble, 5.0f },
-                                  { p::drive, 0.15f }, { p::driveMix, 0.25f }, { p::driveType, 3.0f },
-                                  { p::warmth, 0.6f }, { p::cabMix, 0.8f },
-                                  { p::modOn, 1.0f },  { p::modMode, 0.0f }, { p::modRate, 0.35f },
+            { "Wet Shimmer",    { { p::bass, 2.0f },    { p::treble, 5.0f },
+                                  { p::drive, 0.15f },  { p::driveMix, 0.25f }, { p::driveType, 3.0f },
+                                  { p::warmth, 0.6f },  { p::cabMix, 0.8f },
+                                  { p::modOn, 1.0f },   { p::modMode, 0.0f }, { p::modRate, 0.35f },
                                   { p::modDepth, 0.6f }, { p::modMix, 0.5f }, { p::modSpread, 1.0f },
                                   { p::reverbAmount, 0.55f }, { p::reverbDecay, 0.8f },
                                   { p::delayAmount, 0.4f }, { p::delayTime, 420.0f },
                                   { p::delayFeedback, 0.4f }, { p::spaceRouting, 0.0f } } },
 
+            { "Blues Breakup",  { { p::drive, 0.35f },  { p::driveMix, 0.55f }, { p::driveType, 3.0f },
+                                  { p::warmth, 0.7f },  { p::driveTone, 0.65f }, { p::cabMix, 1.0f },
+                                  { p::reverbAmount, 0.25f }, { p::reverbDecay, 0.45f } } },
+
+            { "Crunch",         { { p::drive, 0.45f },  { p::driveMix, 0.75f }, { p::driveType, 3.0f },
+                                  { p::warmth, 0.6f },  { p::driveTone, 0.7f }, { p::cabMix, 0.9f } } },
+
+            { "Amped Crunch",   { { p::drive, 0.45f },  { p::driveMix, 0.75f }, { p::driveType, 3.0f },
+                                  { p::warmth, 0.6f },  { p::cabMix, 1.0f } } },
+
+            { "Tube Lead",      { { p::drive, 0.85f },  { p::driveMix, 1.0f }, { p::driveType, 3.0f },
+                                  { p::warmth, 0.5f },  { p::driveTone, 0.5f }, { p::cabMix, 1.0f },
+                                  { p::delayAmount, 0.35f }, { p::delayTime, 380.0f },
+                                  { p::delayFeedback, 0.4f },
+                                  { p::reverbAmount, 0.35f }, { p::reverbDecay, 0.6f },
+                                  { p::spaceRouting, 1.0f } } },
+
             { "Dulce Lead",     { { p::mid, 2.0f },
-                                  { p::drive, 0.7f },  { p::driveMix, 0.95f }, { p::driveType, 3.0f },
-                                  { p::warmth, 0.7f }, { p::driveTone, 0.55f }, { p::cabMix, 0.9f },
+                                  { p::drive, 0.7f },   { p::driveMix, 0.95f }, { p::driveType, 3.0f },
+                                  { p::warmth, 0.7f },  { p::driveTone, 0.55f }, { p::cabMix, 0.9f },
                                   { p::reverbAmount, 0.4f }, { p::reverbDecay, 0.6f },
                                   { p::delayAmount, 0.45f }, { p::delayTime, 380.0f },
                                   { p::delayFeedback, 0.45f }, { p::spaceRouting, 1.0f } } },
 
-            { "Surf Clean",     { { p::bass, 3.0f },   { p::treble, 6.0f },
-                                  { p::drive, 0.1f },  { p::driveMix, 0.15f }, { p::driveType, 3.0f },
-                                  { p::cabMix, 0.85f },
-                                  { p::modOn, 1.0f },  { p::modMode, 0.0f }, { p::modRate, 0.8f },
-                                  { p::modDepth, 0.4f }, { p::modMix, 0.4f }, { p::modSpread, 1.0f },
-                                  { p::reverbAmount, 0.5f }, { p::reverbDecay, 0.7f },
-                                  { p::spaceRouting, 0.0f } } },
+            { "Fuzz",           { { p::drive, 1.0f },   { p::driveMix, 1.0f },
+                                  { p::driveType, 2.0f }, { p::driveTone, 0.4f } } },
 
-            { "test flangconddl 1", { { p::bass, 2.0f }, { p::mid, -2.2f }, { p::treble, 7.9f },
-                                  { p::drive, 0.6f },  { p::driveMix, 0.97f }, { p::driveType, 3.0f },
-                                  { p::warmth, 0.89f }, { p::driveTone, 0.45f }, { p::cabMix, 0.87f },
-                                  { p::modOn, 1.0f },  { p::modMode, 0.0f }, { p::modRate, 0.05f },
-                                  { p::modDepth, 0.85f }, { p::modFeedback, 0.86f },
-                                  { p::modMix, 0.92f }, { p::modSpread, 0.26f },
-                                  { p::reverbAmount, 0.32f }, { p::reverbDecay, 0.76f },
-                                  { p::delayAmount, 0.35f }, { p::delayTime, 657.0f },
-                                  { p::delayFeedback, 0.67f }, { p::spaceRouting, 2.0f } } },
+            { "Scooped",        { { p::bass, 6.0f },    { p::mid, -6.0f }, { p::treble, 4.0f },
+                                  { p::drive, 0.3f },   { p::driveMix, 0.6f }, { p::driveType, 3.0f },
+                                  { p::cabMix, 0.9f } } },
+
+            { "Doom",           { { p::bass, 4.0f },    { p::mid, -4.0f },
+                                  { p::drive, 1.0f },   { p::driveMix, 1.0f }, { p::driveType, 2.0f },
+                                  { p::driveTone, 0.3f }, { p::cabMix, 1.0f },
+                                  { p::modOn, 1.0f },   { p::modMode, 1.0f }, { p::modRate, 0.2f },
+                                  { p::modDepth, 0.6f }, { p::modFeedback, 0.5f }, { p::modMix, 0.5f } } },
+
+            { "Jet Flanger",    { { p::drive, 0.6f },   { p::driveMix, 0.8f }, { p::driveType, 3.0f },
+                                  { p::warmth, 0.5f },  { p::cabMix, 0.9f },
+                                  { p::modOn, 1.0f },   { p::modMode, 1.0f }, { p::modRate, 0.3f },
+                                  { p::modDepth, 0.8f }, { p::modFeedback, 0.7f },
+                                  { p::modMix, 0.6f }, { p::modSpread, 1.0f } } },
+
+            { "Slow Swirl",     { { p::drive, 0.2f },   { p::driveMix, 0.3f }, { p::driveType, 3.0f },
+                                  { p::cabMix, 0.9f },
+                                  { p::modOn, 1.0f },   { p::modMode, 0.0f }, { p::modRate, 0.15f },
+                                  { p::modDepth, 0.9f }, { p::modFeedback, 0.3f },
+                                  { p::modMix, 0.6f }, { p::modSpread, 1.0f } } },
+
+            { "Ambient Clean",  { { p::drive, 0.2f },   { p::driveMix, 0.3f }, { p::driveType, 3.0f },
+                                  { p::warmth, 0.6f },  { p::cabMix, 0.85f },
+                                  { p::modOn, 1.0f },   { p::modMode, 0.0f }, { p::modRate, 0.4f },
+                                  { p::modDepth, 0.5f }, { p::modMix, 0.4f },
+                                  { p::reverbAmount, 0.5f }, { p::reverbDecay, 0.75f },
+                                  { p::delayAmount, 0.35f }, { p::delayTime, 500.0f },
+                                  { p::delayFeedback, 0.4f }, { p::spaceRouting, 2.0f } } },
+
+            { "Cathedral Lead", { { p::drive, 0.5f },   { p::driveMix, 0.75f }, { p::driveType, 3.0f },
+                                  { p::warmth, 0.6f },  { p::cabMix, 0.9f },
+                                  { p::reverbAmount, 0.6f }, { p::reverbDecay, 0.85f },
+                                  { p::delayAmount, 0.5f }, { p::delayTime, 460.0f },
+                                  { p::delayFeedback, 0.5f }, { p::spaceRouting, 1.0f } } },
+
+            { "Stadium",        { { p::drive, 0.55f },  { p::driveMix, 0.8f }, { p::driveType, 3.0f },
+                                  { p::warmth, 0.6f },  { p::cabMix, 1.0f },
+                                  { p::modOn, 1.0f },   { p::modMode, 0.0f }, { p::modRate, 0.4f },
+                                  { p::modDepth, 0.4f }, { p::modMix, 0.35f }, { p::modSpread, 1.0f },
+                                  { p::reverbAmount, 0.55f }, { p::reverbDecay, 0.8f },
+                                  { p::delayAmount, 0.4f }, { p::delayTime, 420.0f },
+                                  { p::delayFeedback, 0.45f }, { p::spaceRouting, 0.0f } } },
+
+            { "Dub Echo",       { { p::bass, 3.0f },    { p::treble, -3.0f },
+                                  { p::drive, 0.25f },  { p::driveMix, 0.4f }, { p::driveType, 3.0f },
+                                  { p::warmth, 0.6f },  { p::cabMix, 0.9f },
+                                  { p::delayAmount, 0.6f }, { p::delayTime, 550.0f },
+                                  { p::delayFeedback, 0.72f },
+                                  { p::reverbAmount, 0.3f }, { p::reverbDecay, 0.7f },
+                                  { p::spaceRouting, 1.0f } } },
         };
     }
 

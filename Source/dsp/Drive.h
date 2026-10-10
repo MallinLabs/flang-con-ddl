@@ -165,7 +165,7 @@ public:
             processFilter (presence, numCh, numSamples);
 
         // 5. Makeup + tono + DC block + mix.
-        const float makeup = 1.0f / std::sqrt (juce::jmax (1.0f, driveGain.getTargetValue()));
+        const float makeup = 1.0f / std::pow (juce::jmax (1.0f, driveGain.getTargetValue()), 1.0f / 3.0f);
 
         for (int ch = 0; ch < numCh; ++ch)
         {
