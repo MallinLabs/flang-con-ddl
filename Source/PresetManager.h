@@ -98,15 +98,34 @@ private:
         namespace p = flang::params;
 
         return {
-            { "Clean JC",   { { p::drive, 0.0f },  { p::driveMix, 0.0f } } },
-            { "Crunch",     { { p::drive, 0.4f },  { p::driveMix, 0.6f },
-                              { p::driveType, 0.0f }, { p::driveTone, 0.7f } } },
-            { "Distortion", { { p::drive, 0.8f },  { p::driveMix, 1.0f },
-                              { p::driveType, 1.0f }, { p::driveTone, 0.5f } } },
-            { "Fuzz",       { { p::drive, 1.0f },  { p::driveMix, 1.0f },
-                              { p::driveType, 2.0f }, { p::driveTone, 0.4f } } },
-            { "Scooped",    { { p::bass, 6.0f },   { p::mid, -6.0f }, { p::treble, 4.0f },
-                              { p::drive, 0.3f },  { p::driveMix, 0.5f } } },
+            { "Clean JC",    { { p::drive, 0.0f },  { p::driveMix, 0.0f } } },
+
+            { "JC Chorus",   { { p::drive, 0.0f },  { p::driveMix, 0.0f },
+                               { p::modOn, 1.0f },  { p::modMode, 0.0f }, { p::modRate, 0.5f },
+                               { p::modDepth, 0.5f }, { p::modMix, 0.5f }, { p::modSpread, 1.0f } } },
+
+            { "Crunch",      { { p::drive, 0.4f },  { p::driveMix, 0.6f },
+                               { p::driveType, 0.0f }, { p::driveTone, 0.7f } } },
+
+            { "Distortion",  { { p::drive, 0.8f },  { p::driveMix, 1.0f },
+                               { p::driveType, 1.0f }, { p::driveTone, 0.5f } } },
+
+            { "Fuzz",        { { p::drive, 1.0f },  { p::driveMix, 1.0f },
+                               { p::driveType, 2.0f }, { p::driveTone, 0.4f } } },
+
+            { "Scooped",     { { p::bass, 6.0f },   { p::mid, -6.0f }, { p::treble, 4.0f },
+                               { p::drive, 0.3f },  { p::driveMix, 0.5f } } },
+
+            { "Jet Flanger", { { p::drive, 0.6f },  { p::driveMix, 0.8f }, { p::driveType, 0.0f },
+                               { p::modOn, 1.0f },  { p::modMode, 1.0f }, { p::modRate, 0.3f },
+                               { p::modDepth, 0.8f }, { p::modFeedback, 0.7f },
+                               { p::modMix, 0.6f }, { p::modSpread, 1.0f } } },
+
+            { "Doom",        { { p::bass, 4.0f },   { p::mid, -4.0f },
+                               { p::drive, 1.0f },  { p::driveMix, 1.0f }, { p::driveType, 2.0f },
+                               { p::driveTone, 0.3f },
+                               { p::modOn, 1.0f },  { p::modMode, 1.0f }, { p::modRate, 0.2f },
+                               { p::modDepth, 0.6f }, { p::modFeedback, 0.5f }, { p::modMix, 0.5f } } },
         };
     }
 
