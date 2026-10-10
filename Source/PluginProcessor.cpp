@@ -57,9 +57,13 @@ FlangAudioProcessor::createParameterLayout()
         juce::ParameterID { oversampleID, 1 }, "Oversample",
         juce::StringArray { "2x", "4x", "8x" }, 1));
 
-    // Mod (chorus).
+    // Mod (chorus / flanger).
     layout.add (std::make_unique<juce::AudioParameterBool> (
         juce::ParameterID { modOnID, 1 }, "Mod", false));
+
+    layout.add (std::make_unique<juce::AudioParameterChoice> (
+        juce::ParameterID { modModeID, 1 }, "Mode",
+        juce::StringArray { "Chorus", "Flanger" }, 0));
 
     layout.add (std::make_unique<juce::AudioParameterFloat> (
         juce::ParameterID { modRateID, 1 }, "Rate",
@@ -68,6 +72,10 @@ FlangAudioProcessor::createParameterLayout()
     layout.add (std::make_unique<juce::AudioParameterFloat> (
         juce::ParameterID { modDepthID, 1 }, "Depth",
         juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.5f));
+
+    layout.add (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { modFeedbackID, 1 }, "Feedback",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.0f));
 
     layout.add (std::make_unique<juce::AudioParameterFloat> (
         juce::ParameterID { modMixID, 1 }, "Mod Mix",
@@ -140,11 +148,15 @@ void FlangAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
     drive.process (buffer);
 
-    // Mod: chorus true-stereo. Apagado => mix 0 (dry puro).
+    // Mod: chorus o flanger (mismo motor, distinto regimen de parametros).
+    // Apagado => mix 0 (dry puro).
+    const bool flanger = param (modModeID) > 0.5f;
+
     mod.setRate (param (modRateID));
     mod.setDepth (param (modDepthID));
     mod.setSpread (param (modSpreadID));
-    mod.setFeedback (0.0f);
+    mod.setCentreDelayMs (flanger ? 2.0f : 15.0f);
+    mod.setFeedback (param (modFeedbackID) * (flanger ? 0.9f : 0.2f));
     mod.setMix (param (modOnID) > 0.5f ? param (modMixID) : 0.0f);
     mod.process (buffer);
 

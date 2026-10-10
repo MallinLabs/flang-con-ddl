@@ -65,11 +65,13 @@ public:
     static constexpr const char* driveToneID  = flang::params::driveTone;
     static constexpr const char* driveMixID   = flang::params::driveMix;
     static constexpr const char* oversampleID = flang::params::oversample;
-    static constexpr const char* modOnID      = flang::params::modOn;
-    static constexpr const char* modRateID    = flang::params::modRate;
-    static constexpr const char* modDepthID   = flang::params::modDepth;
-    static constexpr const char* modMixID     = flang::params::modMix;
-    static constexpr const char* modSpreadID  = flang::params::modSpread;
+    static constexpr const char* modOnID       = flang::params::modOn;
+    static constexpr const char* modModeID     = flang::params::modMode;
+    static constexpr const char* modRateID     = flang::params::modRate;
+    static constexpr const char* modDepthID    = flang::params::modDepth;
+    static constexpr const char* modFeedbackID = flang::params::modFeedback;
+    static constexpr const char* modMixID      = flang::params::modMix;
+    static constexpr const char* modSpreadID   = flang::params::modSpread;
     static constexpr const char* outputGainID = flang::params::outputGain;
 
     juce::AudioProcessorValueTreeState apvts;
