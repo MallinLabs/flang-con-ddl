@@ -126,3 +126,83 @@ TEST_CASE ("El orden Reverb/Echo cambia la salida", "[dsp][space]")
     REQUIRE (maxDiff (serial, other) > 1e-3f);
     REQUIRE (maxDiff (serial, par)   > 1e-3f);
 }
+
+TEST_CASE ("Delay Time mueve la repeticion", "[dsp][space]")
+{
+    auto repeatIndex = [] (float timeMs)
+    {
+        flang::dsp::SpaceFX space;
+        constexpr int blockSize = 2048;
+        space.prepare (kSr, 2, blockSize);
+        space.setReverbAmount (0.0f);
+        space.setDelayAmount (1.0f);
+        space.setDelayTimeMs (timeMs);
+        space.setDelayFeedback (0.0f);
+        space.setRouting (flang::dsp::SpaceRouting::ReverbIntoEcho);
+
+        const int total = (int) (0.8 * kSr);
+        std::vector<float> out ((size_t) total, 0.0f);
+
+        for (int start = 0; start < total; start += blockSize)
+        {
+            const int n = juce::jmin (blockSize, total - start);
+            juce::AudioBuffer<float> buffer (2, n);
+            buffer.clear();
+            if (start == 0)
+                buffer.setSample (0, 0, 1.0f);
+
+            space.process (buffer);
+
+            for (int i = 0; i < n; ++i)
+                out[(size_t) (start + i)] = buffer.getSample (0, i);
+        }
+
+        int peakIndex = 0;
+        float peak = 0.0f;
+        for (int i = 10; i < total; ++i)   // ignorar el impulso en 0
+            if (std::abs (out[(size_t) i]) > peak)
+            {
+                peak = std::abs (out[(size_t) i]);
+                peakIndex = i;
+            }
+        return peakIndex;
+    };
+
+    REQUIRE (repeatIndex (100.0f) < repeatIndex (500.0f));
+}
+
+TEST_CASE ("Delay Repeats agrega repeticiones", "[dsp][space]")
+{
+    auto lateEnergy = [] (float feedback)
+    {
+        flang::dsp::SpaceFX space;
+        constexpr int blockSize = 2048;
+        space.prepare (kSr, 2, blockSize);
+        space.setReverbAmount (0.0f);
+        space.setDelayAmount (1.0f);
+        space.setDelayTimeMs (100.0f);
+        space.setDelayFeedback (feedback);
+        space.setRouting (flang::dsp::SpaceRouting::ReverbIntoEcho);
+
+        const int total = (int) (1.0 * kSr);
+        double energy = 0.0;
+
+        for (int start = 0; start < total; start += blockSize)
+        {
+            const int n = juce::jmin (blockSize, total - start);
+            juce::AudioBuffer<float> buffer (2, n);
+            buffer.clear();
+            if (start == 0)
+                buffer.setSample (0, 0, 1.0f);
+
+            space.process (buffer);
+
+            for (int i = 0; i < n; ++i)
+                if (start + i > (int) (0.15 * kSr))   // despues de la 1ra repeticion
+                    energy += std::abs (buffer.getSample (0, i));
+        }
+        return energy;
+    };
+
+    REQUIRE (lateEnergy (0.8f) > lateEnergy (0.0f));
+}

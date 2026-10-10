@@ -16,11 +16,7 @@ enum class SpaceRouting { ReverbIntoEcho, EchoIntoReverb, Parallel };
 /**
     Etapa final de espacio: reverb (Freeverb) + delay/echo, con ruteo conmutable.
 
-    Modos:
-      - ReverbIntoEcho: la reverb va primero, el eco procesa el resultado.
-      - EchoIntoReverb: el eco va primero, la reverb procesa el resultado.
-      - Parallel:       ambos salen de la senal seca y se suman.
-
+    Controles: cantidad/decay de reverb, cantidad/tiempo/feedback del eco, y orden.
     Nucleo puro: no depende del host.
 */
 class SpaceFX
@@ -38,7 +34,7 @@ public:
         juce::dsp::ProcessSpec spec { newSampleRate, (juce::uint32) maxBlock, (juce::uint32) channels };
         reverb.prepare (spec);
 
-        delayBufferSize = (int) std::ceil (kDelaySeconds * sampleRate) + 4;
+        delayBufferSize = (int) std::ceil (kMaxDelaySeconds * sampleRate) + 4;
         delayBuffers.assign ((size_t) channels, std::vector<float> ((size_t) delayBufferSize, 0.0f));
         delayWrite.assign ((size_t) channels, 0);
         feedbackLp.assign ((size_t) channels, 0.0f);
@@ -62,8 +58,11 @@ public:
     }
 
     //==========================================================================
-    void setReverbAmount (float a) noexcept  { reverbAmount = juce::jlimit (0.0f, 1.0f, a); }
-    void setDelayAmount (float a) noexcept   { delayAmount  = juce::jlimit (0.0f, 1.0f, a); }
+    void setReverbAmount (float a) noexcept   { reverbAmount = juce::jlimit (0.0f, 1.0f, a); }
+    void setReverbDecay (float d) noexcept    { reverbDecay  = juce::jlimit (0.0f, 1.0f, d); }
+    void setDelayAmount (float a) noexcept    { delayAmount  = juce::jlimit (0.0f, 1.0f, a); }
+    void setDelayFeedback (float f) noexcept  { delayFeedback = juce::jlimit (0.0f, 0.9f, f); }
+    void setDelayTimeMs (float ms) noexcept   { delaySeconds = juce::jlimit (0.02f, kMaxDelaySeconds, ms * 0.001f); }
     void setRouting (SpaceRouting r) noexcept { routing = r; }
 
     //==========================================================================
@@ -115,19 +114,17 @@ public:
 
 private:
     //==========================================================================
-    static constexpr float kDelaySeconds = 0.35f;
-    static constexpr float kFeedback     = 0.35f;
-    static constexpr float kFeedbackLpHz = 4000.0f;
+    static constexpr float kMaxDelaySeconds = 1.0f;
+    static constexpr float kFeedbackLpHz    = 4000.0f;
 
     void applyReverb (juce::AudioBuffer<float>& buffer, int numSamples, int numCh,
                       float dry, float wet) noexcept
     {
         juce::dsp::Reverb::Parameters p;
-        p.roomSize = 0.6f;
+        p.roomSize = reverbDecay;
         p.damping  = 0.45f;
         p.width    = 1.0f;
-        // juce::Reverb escala las ganancias: dryGain = dryLevel*2, wet = wetLevel*3.
-        // Invertimos para obtener dry unitario y wet = amount.
+        // juce::Reverb escala: dryGain = dryLevel*2, wet = wetLevel*3.
         p.dryLevel = dry * 0.5f;
         p.wetLevel = wet / 3.0f;
         reverb.setParameters (p);
@@ -151,7 +148,7 @@ private:
                 const float delayed = readDelay (ch);
 
                 feedbackLp[(size_t) ch] += feedbackCoef * (delayed - feedbackLp[(size_t) ch]);
-                writeDelay (ch, in + kFeedback * feedbackLp[(size_t) ch]);
+                writeDelay (ch, in + delayFeedback * feedbackLp[(size_t) ch]);
 
                 d[i] = in + amount * delayed;
             }
@@ -160,7 +157,7 @@ private:
 
     float readDelay (int ch) const noexcept
     {
-        float pos = (float) delayWrite[(size_t) ch] - kDelaySeconds * (float) sampleRate;
+        float pos = (float) delayWrite[(size_t) ch] - delaySeconds * (float) sampleRate;
 
         while (pos < 0.0f)
             pos += (float) delayBufferSize;
@@ -184,8 +181,11 @@ private:
     int maxBlock   = 512;
     int delayBufferSize = 0;
 
-    float reverbAmount = 0.0f;
-    float delayAmount  = 0.0f;
+    float reverbAmount  = 0.0f;
+    float reverbDecay   = 0.5f;
+    float delayAmount   = 0.0f;
+    float delayFeedback = 0.35f;
+    float delaySeconds  = 0.35f;
     SpaceRouting routing = SpaceRouting::ReverbIntoEcho;
     float feedbackCoef = 0.5f;
 
