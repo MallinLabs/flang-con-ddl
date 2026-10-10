@@ -36,7 +36,10 @@ public:
         writePos.assign ((size_t) channels, 0);
         dryBuffer.setSize (channels, maxBlock);
 
-        setImpulseResponse (makeBuiltInIR (newSampleRate));
+        // No pisar una IR custom si ya fue cargada (p.ej. al recordar una sesion).
+        if (std::atomic_load (&impulse) == nullptr)
+            setImpulseResponse (makeBuiltInIR (newSampleRate));
+
         reset();
     }
 

@@ -15,7 +15,8 @@ switch físico de orden Reverb>Echo / Echo>Reverb / Paralelo) y Output.
 
 La GUI tiene estética de **amplificador** (cabina marrón "dulce de leche" + panel de
 latón + perillas marfil redondas), 5 secciones **PREAMP / DRIVE / MOD / SPACE / CAB**,
-tooltips y botón de ayuda (?). Incluye **presets** (10 factory + usuario) y **Reset**.
+tooltips y botón de ayuda (?). Incluye **presets** (12 factory + usuario), **Reset**, y
+recuerda la IR de parlante cargada al reabrir el proyecto.
 
 ## Requisitos
 
@@ -54,7 +55,8 @@ Live: procesan señales conocidas y verifican la respuesta.
 
 | Path | Qué |
 |---|---|
-| `Source/dsp/` | Núcleo DSP puro (ToneStack, Preamp, Drive) — testeable sin host |
+| `Source/dsp/` | Núcleo DSP puro (Preamp, Drive, CabinetIR, ModEngine, SpaceFX) — testeable sin host |
+| `Source/ui/` | LookAndFeel y switch físico (estética de ampli) |
 | `Source/PluginProcessor.*` | Adapter hacia el host (JUCE) |
 | `Source/PluginEditor.*` | GUI |
 | `Tests/` | Tests offline (Catch2) |
@@ -65,11 +67,11 @@ Live: procesan señales conocidas y verifican la respuesta.
 |---|---|
 | 0 | Scaffold + passthrough ✅ |
 | 1 | Preamp + tone stack (EQ 3 bandas) ✅ |
-| 2 | Drive (waveshaper soft/hard/fold + oversampling 2x/4x/8x + DC block) ✅ |
-| 3 | ModEngine chorus (true-stereo) |
-| 4 | Modo flanger |
-| 5 | Cab IR (convolución) |
-| 6 | GUI final, presets, pluginval |
+| 2 | Drive (Tube/Soft/Hard/Fold + oversampling 2x/4x/8x) ✅ |
+| 3 | ModEngine chorus (true-stereo) ✅ |
+| 4 | Modo flanger ✅ |
+| 5 | Cab IR (convolución + Load IR) ✅ |
+| 6 | GUI final, presets, pluginval ✅ |
 
 ## Licencia
 

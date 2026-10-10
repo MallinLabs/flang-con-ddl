@@ -20,7 +20,8 @@
     Cadena actual: preamp (input gain + EQ) -> drive (waveshaper + oversampling)
     -> output gain.
 */
-class FlangAudioProcessor : public juce::AudioProcessor
+class FlangAudioProcessor : public juce::AudioProcessor,
+                            public juce::ChangeBroadcaster
 {
 public:
     //==========================================================================
@@ -57,6 +58,9 @@ public:
 
     /** Carga una IR de parlante desde un archivo (llamado desde la GUI). */
     void loadCabIR (const juce::File& file);
+
+    /** Nombre de la IR de parlante en uso. */
+    juce::String getCabIRName() const { return cabIrName; }
 
     //==========================================================================
     // IDs estables de parametros. Nunca renombrar: rompe la automatizacion guardada.
@@ -103,6 +107,8 @@ private:
     flang::dsp::CabinetIR cab;
     flang::dsp::ModEngine mod;
     flang::dsp::SpaceFX   space;
+
+    juce::String cabIrName { "Built-in" };
 
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> outputGain { 1.0f };
 

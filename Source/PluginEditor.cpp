@@ -131,6 +131,13 @@ FlangAudioProcessorEditor::FlangAudioProcessorEditor (FlangAudioProcessor& p)
     styleMetalButton (loadIRButton);
     addAndMakeVisible (loadIRButton);
 
+    irLabel.setText ("IR: " + processorRef.getCabIRName(), juce::dontSendNotification);
+    irLabel.setJustificationType (juce::Justification::centredLeft);
+    irLabel.setColour (juce::Label::textColourId, engraved.withAlpha (0.8f));
+    irLabel.setFont (juce::Font (juce::FontOptions (11.0f)));
+    addAndMakeVisible (irLabel);
+    processorRef.addChangeListener (this);
+
     saveButton.setTooltip ("Save the current settings as a user preset.");
     saveButton.onClick = [this] { saveCurrentPreset(); };
     styleMetalButton (saveButton);
@@ -157,7 +164,13 @@ FlangAudioProcessorEditor::FlangAudioProcessorEditor (FlangAudioProcessor& p)
 
 FlangAudioProcessorEditor::~FlangAudioProcessorEditor()
 {
+    processorRef.removeChangeListener (this);
     setLookAndFeel (nullptr);
+}
+
+void FlangAudioProcessorEditor::changeListenerCallback (juce::ChangeBroadcaster*)
+{
+    irLabel.setText ("IR: " + processorRef.getCabIRName(), juce::dontSendNotification);
 }
 
 //==============================================================================
@@ -397,6 +410,7 @@ void FlangAudioProcessorEditor::resized()
         {
             auto cell = rowArea.removeFromLeft (cellWidth).reduced (cellWidth / 6, 0);
             loadIRButton.setBounds (cell.withSizeKeepingCentre (cell.getWidth(), 26));
+            irLabel.setBounds (rowArea.reduced (10, 0));
         }
     }
 }

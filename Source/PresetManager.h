@@ -139,6 +139,12 @@ private:
                                   { p::warmth, 0.6f },
                                   { p::reverbAmount, 0.6f }, { p::delayAmount, 0.5f },
                                   { p::spaceRouting, 1.0f } } },
+
+            { "Amped Clean",    { { p::drive, 0.1f },  { p::driveMix, 0.2f }, { p::driveType, 3.0f },
+                                  { p::warmth, 0.6f }, { p::cabMix, 1.0f } } },
+
+            { "Amped Crunch",   { { p::drive, 0.45f }, { p::driveMix, 0.75f }, { p::driveType, 3.0f },
+                                  { p::warmth, 0.6f }, { p::cabMix, 1.0f } } },
         };
     }
 

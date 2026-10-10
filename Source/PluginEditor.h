@@ -14,7 +14,8 @@
     nameplate, y panel de laton con los controles. 5 secciones:
     PREAMP / DRIVE / MOD / SPACE / CAB.
 */
-class FlangAudioProcessorEditor : public juce::AudioProcessorEditor
+class FlangAudioProcessorEditor : public juce::AudioProcessorEditor,
+                                  private juce::ChangeListener
 {
 public:
     explicit FlangAudioProcessorEditor (FlangAudioProcessor&);
@@ -46,6 +47,7 @@ private:
     void saveCurrentPreset();
     void showHelp();
     void chooseIR();
+    void changeListenerCallback (juce::ChangeBroadcaster*) override;
     void drawScrew (juce::Graphics& g, juce::Point<float> centre) const;
 
     FlangAudioProcessor& processorRef;
@@ -62,6 +64,7 @@ private:
 
     juce::ComboBox presetBox;
     juce::TextEditor presetName;
+    juce::Label irLabel;
     juce::TextButton loadIRButton { "Load IR" };
     juce::TextButton saveButton { "Save" };
     juce::TextButton resetButton { "Reset" };

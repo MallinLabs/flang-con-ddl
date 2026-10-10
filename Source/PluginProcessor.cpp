@@ -234,6 +234,15 @@ void FlangAudioProcessor::setStateInformation (const void* data, int sizeInBytes
     if (auto xml = getXmlFromBinary (data, sizeInBytes))
         if (xml->hasTagName (apvts.state.getType()))
             apvts.replaceState (juce::ValueTree::fromXml (*xml));
+
+    // Recordar la IR de parlante cargada (si la sesion la tenia).
+    const auto irPath = apvts.state.getProperty ("cabIrPath").toString();
+    if (irPath.isNotEmpty())
+    {
+        const juce::File f (irPath);
+        if (f.existsAsFile())
+            loadCabIR (f);
+    }
 }
 
 //==============================================================================
@@ -264,6 +273,9 @@ void FlangAudioProcessor::loadCabIR (const juce::File& file)
         v /= (float) ir.getNumChannels();
 
     cab.setImpulseResponse (mono);
+    cabIrName = file.getFileNameWithoutExtension();
+    apvts.state.setProperty ("cabIrPath", file.getFullPathName(), nullptr);
+    sendChangeMessage();
 }
 
 //==============================================================================
