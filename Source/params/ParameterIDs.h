@@ -12,6 +12,7 @@ namespace flang::params
     inline constexpr const char* driveType  = "driveType";
     inline constexpr const char* driveTone  = "driveTone";
     inline constexpr const char* driveMix   = "driveMix";
+    inline constexpr const char* warmth     = "warmth";
     inline constexpr const char* oversample = "oversample";
 
     inline constexpr const char* modOn       = "modOn";
@@ -21,6 +22,10 @@ namespace flang::params
     inline constexpr const char* modFeedback = "modFeedback";
     inline constexpr const char* modMix      = "modMix";
     inline constexpr const char* modSpread   = "modSpread";
+
+    inline constexpr const char* spaceRouting = "spaceRouting";
+    inline constexpr const char* reverbAmount = "reverbAmount";
+    inline constexpr const char* delayAmount  = "delayAmount";
 
     inline constexpr const char* outputGain = "output";
 }

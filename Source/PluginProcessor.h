@@ -6,6 +6,7 @@
 #include "dsp/Drive.h"
 #include "dsp/ModEngine.h"
 #include "dsp/Preamp.h"
+#include "dsp/SpaceFX.h"
 #include "params/ParameterIDs.h"
 
 //==============================================================================
@@ -40,7 +41,7 @@ public:
     bool acceptsMidi() const override  { return false; }
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
-    double getTailLengthSeconds() const override { return 0.5; }
+    double getTailLengthSeconds() const override { return 3.0; }
 
     //==========================================================================
     int getNumPrograms() override { return 1; }
@@ -64,6 +65,7 @@ public:
     static constexpr const char* driveTypeID  = flang::params::driveType;
     static constexpr const char* driveToneID  = flang::params::driveTone;
     static constexpr const char* driveMixID   = flang::params::driveMix;
+    static constexpr const char* warmthID     = flang::params::warmth;
     static constexpr const char* oversampleID = flang::params::oversample;
     static constexpr const char* modOnID       = flang::params::modOn;
     static constexpr const char* modModeID     = flang::params::modMode;
@@ -72,6 +74,9 @@ public:
     static constexpr const char* modFeedbackID = flang::params::modFeedback;
     static constexpr const char* modMixID      = flang::params::modMix;
     static constexpr const char* modSpreadID   = flang::params::modSpread;
+    static constexpr const char* spaceRoutingID = flang::params::spaceRouting;
+    static constexpr const char* reverbAmountID = flang::params::reverbAmount;
+    static constexpr const char* delayAmountID  = flang::params::delayAmount;
     static constexpr const char* outputGainID = flang::params::outputGain;
 
     juce::AudioProcessorValueTreeState apvts;
@@ -88,6 +93,7 @@ private:
     flang::dsp::Preamp    preamp;
     flang::dsp::Drive     drive;
     flang::dsp::ModEngine mod;
+    flang::dsp::SpaceFX   space;
 
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> outputGain { 1.0f };
 

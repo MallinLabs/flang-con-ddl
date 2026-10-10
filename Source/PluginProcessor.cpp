@@ -43,7 +43,7 @@ FlangAudioProcessor::createParameterLayout()
 
     layout.add (std::make_unique<juce::AudioParameterChoice> (
         juce::ParameterID { driveTypeID, 1 }, "Type",
-        juce::StringArray { "Soft", "Hard", "Fold" }, 0));
+        juce::StringArray { "Soft", "Hard", "Fold", "Tube" }, 3));
 
     layout.add (std::make_unique<juce::AudioParameterFloat> (
         juce::ParameterID { driveToneID, 1 }, "Tone",
@@ -52,6 +52,10 @@ FlangAudioProcessor::createParameterLayout()
     layout.add (std::make_unique<juce::AudioParameterFloat> (
         juce::ParameterID { driveMixID, 1 }, "Mix",
         juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.0f));
+
+    layout.add (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { warmthID, 1 }, "Warmth",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.5f));
 
     layout.add (std::make_unique<juce::AudioParameterChoice> (
         juce::ParameterID { oversampleID, 1 }, "Oversample",
@@ -85,6 +89,19 @@ FlangAudioProcessor::createParameterLayout()
         juce::ParameterID { modSpreadID, 1 }, "Spread",
         juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 1.0f));
 
+    // Space: reverb + echo.
+    layout.add (std::make_unique<juce::AudioParameterChoice> (
+        juce::ParameterID { spaceRoutingID, 1 }, "Order",
+        juce::StringArray { "Reverb > Echo", "Echo > Reverb", "Parallel" }, 0));
+
+    layout.add (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { reverbAmountID, 1 }, "Reverb",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.0f));
+
+    layout.add (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { delayAmountID, 1 }, "Delay",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.0f));
+
     layout.add (std::make_unique<juce::AudioParameterFloat> (
         juce::ParameterID { outputGainID, 1 }, "Output",
         juce::NormalisableRange<float> { -24.0f, 12.0f, 0.1f }, 0.0f,
@@ -101,6 +118,7 @@ void FlangAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     preamp.prepare (sampleRate, numChannels, samplesPerBlock);
     drive.prepare  (sampleRate, numChannels, samplesPerBlock);
     mod.prepare    (sampleRate, numChannels, samplesPerBlock);
+    space.prepare  (sampleRate, numChannels, samplesPerBlock);
 
     outputGain.reset (sampleRate, 0.02);   // 20 ms: anti-zipper
     outputGain.setCurrentAndTargetValue (1.0f);
@@ -135,6 +153,7 @@ void FlangAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // Drive: waveshaper + oversampling.
     drive.setShape (static_cast<flang::dsp::DriveShape> ((int) param (driveTypeID)));
     drive.setDriveAmount (param (driveID));
+    drive.setWarmth (param (warmthID));
     drive.setTone (param (driveToneID));
     drive.setMix (param (driveMixID));
 
@@ -159,6 +178,12 @@ void FlangAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     mod.setFeedback (param (modFeedbackID) * (flanger ? 0.9f : 0.2f));
     mod.setMix (param (modOnID) > 0.5f ? param (modMixID) : 0.0f);
     mod.process (buffer);
+
+    // Space: reverb + echo con ruteo conmutable.
+    space.setReverbAmount (param (reverbAmountID));
+    space.setDelayAmount (param (delayAmountID));
+    space.setRouting (static_cast<flang::dsp::SpaceRouting> ((int) param (spaceRoutingID)));
+    space.process (buffer);
 
     // Output gain.
     outputGain.setTargetValue (juce::Decibels::decibelsToGain (param (outputGainID)));
