@@ -63,9 +63,9 @@ public:
 
 private:
     //==========================================================================
-    static constexpr int kWindow = 2048;
+    static constexpr int kWindow = 4096;   // ventana larga -> cubre bajo (~23 Hz)
     static constexpr int kHalf   = kWindow / 2;
-    static constexpr int kHop    = 2048;
+    static constexpr int kHop    = 4096;
     static constexpr float kThreshold = 0.15f;
 
     void analyse() noexcept
