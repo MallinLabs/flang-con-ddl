@@ -3,6 +3,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_dsp/juce_dsp.h>
 
+#include "dsp/CabinetIR.h"
 #include "dsp/Drive.h"
 #include "dsp/ModEngine.h"
 #include "dsp/Preamp.h"
@@ -54,6 +55,9 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    /** Carga una IR de parlante desde un archivo (llamado desde la GUI). */
+    void loadCabIR (const juce::File& file);
+
     //==========================================================================
     // IDs estables de parametros. Nunca renombrar: rompe la automatizacion guardada.
     // Viven en params/ParameterIDs.h para compartirlos con el PresetManager.
@@ -67,6 +71,7 @@ public:
     static constexpr const char* driveMixID   = flang::params::driveMix;
     static constexpr const char* warmthID     = flang::params::warmth;
     static constexpr const char* oversampleID = flang::params::oversample;
+    static constexpr const char* cabMixID     = flang::params::cabMix;
     static constexpr const char* modOnID       = flang::params::modOn;
     static constexpr const char* modModeID     = flang::params::modMode;
     static constexpr const char* modRateID     = flang::params::modRate;
@@ -76,7 +81,10 @@ public:
     static constexpr const char* modSpreadID   = flang::params::modSpread;
     static constexpr const char* spaceRoutingID = flang::params::spaceRouting;
     static constexpr const char* reverbAmountID = flang::params::reverbAmount;
+    static constexpr const char* reverbDecayID  = flang::params::reverbDecay;
     static constexpr const char* delayAmountID  = flang::params::delayAmount;
+    static constexpr const char* delayTimeID    = flang::params::delayTime;
+    static constexpr const char* delayFeedbackID = flang::params::delayFeedback;
     static constexpr const char* outputGainID = flang::params::outputGain;
 
     juce::AudioProcessorValueTreeState apvts;
@@ -92,6 +100,7 @@ private:
 
     flang::dsp::Preamp    preamp;
     flang::dsp::Drive     drive;
+    flang::dsp::CabinetIR cab;
     flang::dsp::ModEngine mod;
     flang::dsp::SpaceFX   space;
 

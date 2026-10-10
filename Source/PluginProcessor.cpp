@@ -1,3 +1,5 @@
+#include <juce_audio_formats/juce_audio_formats.h>
+
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
@@ -57,6 +59,10 @@ FlangAudioProcessor::createParameterLayout()
         juce::ParameterID { warmthID, 1 }, "Warmth",
         juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.5f));
 
+    layout.add (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { cabMixID, 1 }, "Cab",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.0f));
+
     layout.add (std::make_unique<juce::AudioParameterChoice> (
         juce::ParameterID { oversampleID, 1 }, "Oversample",
         juce::StringArray { "2x", "4x", "8x" }, 1));
@@ -99,8 +105,20 @@ FlangAudioProcessor::createParameterLayout()
         juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.0f));
 
     layout.add (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { reverbDecayID, 1 }, "Decay",
+        juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.5f));
+
+    layout.add (std::make_unique<juce::AudioParameterFloat> (
         juce::ParameterID { delayAmountID, 1 }, "Delay",
         juce::NormalisableRange<float> { 0.0f, 1.0f, 0.001f }, 0.0f));
+
+    layout.add (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { delayTimeID, 1 }, "Time",
+        juce::NormalisableRange<float> { 20.0f, 1000.0f, 1.0f, 0.4f }, 350.0f));
+
+    layout.add (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { delayFeedbackID, 1 }, "Repeats",
+        juce::NormalisableRange<float> { 0.0f, 0.9f, 0.001f }, 0.35f));
 
     layout.add (std::make_unique<juce::AudioParameterFloat> (
         juce::ParameterID { outputGainID, 1 }, "Output",
@@ -117,6 +135,7 @@ void FlangAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 
     preamp.prepare (sampleRate, numChannels, samplesPerBlock);
     drive.prepare  (sampleRate, numChannels, samplesPerBlock);
+    cab.prepare    (sampleRate, numChannels, samplesPerBlock);
     mod.prepare    (sampleRate, numChannels, samplesPerBlock);
     space.prepare  (sampleRate, numChannels, samplesPerBlock);
 
@@ -167,6 +186,10 @@ void FlangAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
     drive.process (buffer);
 
+    // Cab: simulador de parlante (convolucion).
+    cab.setMix (param (cabMixID));
+    cab.process (buffer);
+
     // Mod: chorus o flanger (mismo motor, distinto regimen de parametros).
     // Apagado => mix 0 (dry puro).
     const bool flanger = param (modModeID) > 0.5f;
@@ -181,7 +204,10 @@ void FlangAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
     // Space: reverb + echo con ruteo conmutable.
     space.setReverbAmount (param (reverbAmountID));
+    space.setReverbDecay (param (reverbDecayID));
     space.setDelayAmount (param (delayAmountID));
+    space.setDelayTimeMs (param (delayTimeID));
+    space.setDelayFeedback (param (delayFeedbackID));
     space.setRouting (static_cast<flang::dsp::SpaceRouting> ((int) param (spaceRoutingID)));
     space.process (buffer);
 
@@ -208,6 +234,36 @@ void FlangAudioProcessor::setStateInformation (const void* data, int sizeInBytes
     if (auto xml = getXmlFromBinary (data, sizeInBytes))
         if (xml->hasTagName (apvts.state.getType()))
             apvts.replaceState (juce::ValueTree::fromXml (*xml));
+}
+
+//==============================================================================
+void FlangAudioProcessor::loadCabIR (const juce::File& file)
+{
+    juce::AudioFormatManager formats;
+    formats.registerBasicFormats();
+
+    std::unique_ptr<juce::AudioFormatReader> reader (formats.createReaderFor (file));
+    if (reader == nullptr)
+        return;
+
+    const int numSamples = (int) juce::jmin ((juce::int64) flang::dsp::CabinetIR::kMaxIrLength,
+                                             reader->lengthInSamples);
+    if (numSamples <= 0)
+        return;
+
+    juce::AudioBuffer<float> ir ((int) juce::jmax (1u, reader->numChannels), numSamples);
+    reader->read (&ir, 0, numSamples, 0, true, true);
+
+    // Sumar a mono (las IR de parlante suelen ser mono).
+    std::vector<float> mono ((size_t) numSamples, 0.0f);
+    for (int ch = 0; ch < ir.getNumChannels(); ++ch)
+        for (int i = 0; i < numSamples; ++i)
+            mono[(size_t) i] += ir.getSample (ch, i);
+
+    for (auto& v : mono)
+        v /= (float) ir.getNumChannels();
+
+    cab.setImpulseResponse (mono);
 }
 
 //==============================================================================
