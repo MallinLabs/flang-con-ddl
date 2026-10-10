@@ -10,6 +10,7 @@
 #include "dsp/ModEngine.h"
 #include "dsp/Preamp.h"
 #include "dsp/SpaceFX.h"
+#include "dsp/Tuner.h"
 #include "params/ParameterIDs.h"
 
 //==============================================================================
@@ -70,6 +71,9 @@ public:
         return (channel == 0 ? levelL : levelR).load();
     }
 
+    /** Frecuencia detectada por el afinador (0 si no hay nota). */
+    float getTunerFrequency() const noexcept { return tunerFreq.load(); }
+
     //==========================================================================
     // IDs estables de parametros. Nunca renombrar: rompe la automatizacion guardada.
     // Viven en params/ParameterIDs.h para compartirlos con el PresetManager.
@@ -117,9 +121,11 @@ private:
     flang::dsp::CabinetIR cab;
     flang::dsp::ModEngine mod;
     flang::dsp::SpaceFX   space;
+    flang::dsp::Tuner     tuner;
 
     juce::String cabIrName { "Built-in" };
     std::atomic<float> levelL { 0.0f }, levelR { 0.0f };
+    std::atomic<float> tunerFreq { 0.0f };
 
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> outputGain { 1.0f };
 

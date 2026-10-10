@@ -15,9 +15,9 @@ switch físico de orden Reverb>Echo / Echo>Reverb / Paralelo) y Output.
 
 La GUI tiene estética de **amplificador** (cabina marrón "dulce de leche" + panel de
 latón + perillas marfil redondas), 5 secciones **PREAMP / DRIVE / MOD / SPACE / CAB**,
-**medidor de nivel**, tooltips y botón de ayuda (?). El eco se puede **sincronizar al
-tempo del host**. Incluye **presets** (20 factory + usuario), **Reset**, y recuerda la
-IR de parlante cargada al reabrir el proyecto.
+**medidor de nivel**, **afinador (tuner)** que escucha la entrada cruda, tooltips y botón
+de ayuda (?). El eco se puede **sincronizar al tempo del host**. Incluye **presets**
+(20 factory + usuario), **Reset**, y recuerda la IR de parlante cargada al reabrir el proyecto.
 
 ## Requisitos
 

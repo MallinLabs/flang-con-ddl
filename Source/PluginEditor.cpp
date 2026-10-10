@@ -24,6 +24,7 @@ FlangAudioProcessorEditor::FlangAudioProcessorEditor (FlangAudioProcessor& p)
       processorRef (p),
       routingSwitch (p.apvts, FlangAudioProcessor::spaceRoutingID),
       meter (p),
+      tuner (p),
       presets (p.apvts)
 {
     setLookAndFeel (&lnf);
@@ -87,6 +88,7 @@ FlangAudioProcessorEditor::FlangAudioProcessorEditor (FlangAudioProcessor& p)
     addAndMakeVisible (routingSwitch);
 
     addAndMakeVisible (meter);
+    addAndMakeVisible (tuner);
 
     // Sync del eco al tempo del host.
     addAndMakeVisible (syncToggle);
@@ -370,6 +372,7 @@ void FlangAudioProcessorEditor::resized()
     auto outer = getLocalBounds().reduced (kPlateInset);
     auto headerRow = outer.removeFromTop (kHeaderHeight);
     meter.setBounds (headerRow.removeFromRight (96).reduced (12, 16));
+    tuner.setBounds (headerRow.removeFromLeft (120).reduced (12, 10));
     auto content = outer.reduced (kPlatePad);
 
     // Footer: preset | nombre | Save | Reset | ?

@@ -166,6 +166,7 @@ void FlangAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     cab.prepare    (sampleRate, numChannels, samplesPerBlock);
     mod.prepare    (sampleRate, numChannels, samplesPerBlock);
     space.prepare  (sampleRate, numChannels, samplesPerBlock);
+    tuner.prepare  (sampleRate);
 
     outputGain.reset (sampleRate, 0.02);   // 20 ms: anti-zipper
     outputGain.setCurrentAndTargetValue (1.0f);
@@ -189,6 +190,10 @@ void FlangAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // Algunos hosts mandan bloques de 0 samples: hay que sobrevivir.
     if (numSamples == 0)
         return;
+
+    // Afinador: escucha la ENTRADA cruda (antes del drive/eq/cab).
+    tuner.process (buffer.getReadPointer (0), numSamples);
+    tunerFreq.store (tuner.getFrequency());
 
     // Preamp: input gain + EQ.
     preamp.setInputGainDb (param (inputGainID));

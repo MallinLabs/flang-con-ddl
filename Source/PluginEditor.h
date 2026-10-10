@@ -8,6 +8,7 @@
 #include "ui/FlangLookAndFeel.h"
 #include "ui/LevelMeter.h"
 #include "ui/RoutingSwitch.h"
+#include "ui/TunerDisplay.h"
 
 //==============================================================================
 /**
@@ -67,6 +68,7 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> syncAttachment;
 
     flang::ui::LevelMeter meter;
+    flang::ui::TunerDisplay tuner;
 
     juce::ComboBox presetBox;
     juce::TextEditor presetName;
