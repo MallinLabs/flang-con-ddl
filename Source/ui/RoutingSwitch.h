@@ -10,19 +10,17 @@ namespace flang::ui
 
 //==============================================================================
 /** Switch fisico de 3 posiciones para el orden Reverb/Echo.
-    Click cicla: Reverb>Echo -> Echo>Reverb -> Parallel. */
+    Click cicla: Reverb>Echo -> Echo>Reverb -> Parallel.
+
+    Nota: el callback de juce::ParameterAttachment recibe el valor DENORMALIZADO
+    (el indice en un choice), asi que leemos siempre el normalizado del parametro. */
 class RoutingSwitch : public juce::Component,
                       public juce::SettableTooltipClient
 {
 public:
     RoutingSwitch (juce::AudioProcessorValueTreeState& apvts, const char* paramID)
         : param (apvts.getParameter (paramID)),
-          attachment (*param, [this] (float v)
-          {
-              // El callback puede llegar normalizado (0..1) o denormalizado (indice).
-              normalised = (v <= 1.0f) ? v : (v / 2.0f);
-              repaint();
-          })
+          attachment (*param, [this] (float) { repaint(); })
     {
         attachment.sendInitialUpdate();
         setTooltip ("Order: Reverb > Echo, Echo > Reverb, or Parallel.");
@@ -30,8 +28,7 @@ public:
 
     void mouseDown (const juce::MouseEvent&) override
     {
-        const int current = juce::jlimit (0, 2, juce::roundToInt (normalised * 2.0f));
-        const int next = (current + 1) % 3;
+        const int next = (currentIndex() + 1) % 3;
         param->setValueNotifyingHost ((float) next / 2.0f); // 0, 0.5, 1 normalizado
     }
 
@@ -45,7 +42,7 @@ public:
         g.drawRoundedRectangle (bounds.reduced (0.5f), 3.0f, 1.0f);
 
         const juce::StringArray labels { "R>E", "E>R", "||" };
-        const int active = juce::jlimit (0, 2, juce::roundToInt (normalised * 2.0f));
+        const int active = currentIndex();
         const float third = bounds.getWidth() / 3.0f;
         const float leverH = bounds.getHeight() * 0.42f;
 
@@ -72,8 +69,12 @@ public:
     }
 
 private:
+    int currentIndex() const
+    {
+        return juce::jlimit (0, 2, juce::roundToInt (param->getValue() * 2.0f));
+    }
+
     juce::RangedAudioParameter* param = nullptr;
-    float normalised = 0.0f;
     juce::ParameterAttachment attachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RoutingSwitch)

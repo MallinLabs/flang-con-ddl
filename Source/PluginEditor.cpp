@@ -325,14 +325,11 @@ void FlangAudioProcessorEditor::paint (juce::Graphics& g)
     drawScrew (g, { plate.getX() + 16.0f,     plate.getBottom() - 16.0f });
     drawScrew (g, { plate.getRight() - 16.0f, plate.getBottom() - 16.0f });
 
-    // Nameplate sobre la cabina marron.
+    // Nameplate: el nombre completo, en una sola tipografia y un solo tamaño.
     g.setColour (brassLight);
-    g.setFont (juce::Font (juce::FontOptions ("Snell Roundhand", 44.0f, juce::Font::plain)));
-    g.drawText ("Flang", header.removeFromTop (48.0f), juce::Justification::centred, false);
-
-    g.setColour (cream.withAlpha (0.85f));
-    g.setFont (juce::Font (juce::FontOptions (13.0f)));
-    g.drawText ("con Dulce de Leche", header, juce::Justification::centred, false);
+    g.setFont (juce::Font (juce::FontOptions ("Snell Roundhand", 34.0f, juce::Font::plain)));
+    g.drawFittedText ("Flang con Dulce de Leche", header.toNearestInt(),
+                      juce::Justification::centred, 1);
 }
 
 void FlangAudioProcessorEditor::resized()
