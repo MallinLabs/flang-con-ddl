@@ -49,18 +49,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
       - name: Build + tests
         run: |
-          cmake -B build -G "Visual Studio 17 2022" -A x64
-          cmake --build build --config Release
-          ctest --test-dir build -C Release --output-on-failure
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+          ctest --test-dir build --output-on-failure
 
       - name: Package
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Compress-Archive -Path "build/Flang_artefacts/Release/VST3/$env:PLUGIN_NAME.vst3" `
-                           -DestinationPath "dist/Flang-windows-x64.zip"
+          $vst3 = Get-ChildItem -Path "build" -Recurse -Directory -Filter "*.vst3" |
+                  Where-Object { $_.FullName -like "*VST3*" } | Select-Object -First 1
+          if (-not $vst3) { throw "No se encontro el .vst3 en build/" }
+          Write-Host "Empaquetando $($vst3.FullName)"
+          Compress-Archive -Path $vst3.FullName -DestinationPath "dist/Flang-windows-x64.zip"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -78,7 +86,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            ninja-build libasound2-dev libfreetype6-dev libglu1-mesa-dev \
+            ninja-build libasound2-dev libfreetype6-dev libfontconfig1-dev \
+            libglu1-mesa-dev libegl-dev libxi-dev \
             libx11-dev libxcomposite-dev libxcursor-dev libxext-dev \
             libxinerama-dev libxrandr-dev libxrender-dev mesa-common-dev
 
