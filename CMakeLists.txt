@@ -5,10 +5,11 @@ project(FlangConDulceDeLeche VERSION 1.0.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Compilar arm64 nativo. Live 11.1+ (Universal) solo lista VST3 compilados
-# nativamente para Apple Silicon; si sale x86_64 no aparece (sin error).
+# Compilar arm64 nativo por defecto. Live 11.1+ solo lista VST3 compilados
+# nativamente para Apple Silicon; un binario que no incluya arm64 no aparece.
+# Para un build universal: -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
 if(APPLE)
-    set(CMAKE_OSX_ARCHITECTURES arm64 CACHE STRING "" FORCE)
+    set(CMAKE_OSX_ARCHITECTURES arm64 CACHE STRING "Target architectures (arm64, x86_64, or arm64;x86_64)")
 endif()
 
 # ----------------------------------------------------------------------------

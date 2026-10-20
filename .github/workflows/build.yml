@@ -1,0 +1,101 @@
+name: build
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+env:
+  PLUGIN_NAME: "Flang con Dulce de Leche"
+
+jobs:
+  macos:
+    name: macOS (universal arm64 + x86_64)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build + tests
+        run: |
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+          cmake --build build
+          ctest --test-dir build --output-on-failure
+
+      - name: Verify architectures
+        run: |
+          BIN="build/Flang_artefacts/Release/VST3/${PLUGIN_NAME}.vst3/Contents/MacOS/${PLUGIN_NAME}"
+          lipo -archs "$BIN" | tee /tmp/archs
+          grep -q arm64 /tmp/archs
+          grep -q x86_64 /tmp/archs
+
+      - name: Package
+        run: |
+          mkdir -p dist
+          ditto -c -k --keepParent --norsrc --noextattr --noqtn \
+            "build/Flang_artefacts/Release/VST3/${PLUGIN_NAME}.vst3" \
+            "dist/Flang-macos-universal.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-universal
+          path: dist/Flang-macos-universal.zip
+          if-no-files-found: error
+
+  windows:
+    name: Windows (x64)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build + tests
+        run: |
+          cmake -B build -G "Visual Studio 17 2022" -A x64
+          cmake --build build --config Release
+          ctest --test-dir build -C Release --output-on-failure
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Compress-Archive -Path "build/Flang_artefacts/Release/VST3/$env:PLUGIN_NAME.vst3" `
+                           -DestinationPath "dist/Flang-windows-x64.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64
+          path: dist/Flang-windows-x64.zip
+          if-no-files-found: error
+
+  linux:
+    name: Linux (x86_64)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            ninja-build libasound2-dev libfreetype6-dev libglu1-mesa-dev \
+            libx11-dev libxcomposite-dev libxcursor-dev libxext-dev \
+            libxinerama-dev libxrandr-dev libxrender-dev mesa-common-dev
+
+      - name: Build + tests
+        run: |
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+          ctest --test-dir build --output-on-failure
+
+      - name: Package
+        run: |
+          mkdir -p dist
+          cd "build/Flang_artefacts/Release/VST3"
+          zip -r "$GITHUB_WORKSPACE/dist/Flang-linux-x64.zip" "${PLUGIN_NAME}.vst3"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64
+          path: dist/Flang-linux-x64.zip
+          if-no-files-found: error
