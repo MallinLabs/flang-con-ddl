@@ -124,13 +124,23 @@ public:
 
         driveGain.setTargetValue (juce::Decibels::decibelsToGain (driveAmount * 30.0f));
 
+        // El host puede mandar un bloque mas grande que el declarado en
+        // prepareToPlay: se procesa en trozos de maxBlock para no salirse de los
+        // buffers internos ni del oversampling (antes era OOB -> SIGSEGV).
+        for (int offset = 0; offset < numSamples; offset += maxBlock)
+            processChunk (buffer, offset, juce::jmin (maxBlock, numSamples - offset), numCh);
+    }
+
+private:
+    void processChunk (juce::AudioBuffer<float>& buffer, int offset, int numSamples, int numCh) noexcept
+    {
         const bool tube = (shape == DriveShape::Tube);
 
         // 1. dry + copia wet.
         for (int ch = 0; ch < numCh; ++ch)
         {
-            dryBuffer.copyFrom (ch, 0, buffer, ch, 0, numSamples);
-            wetBuffer.copyFrom (ch, 0, buffer, ch, 0, numSamples);
+            dryBuffer.copyFrom (ch, 0, buffer, ch, offset, numSamples);
+            wetBuffer.copyFrom (ch, 0, buffer, ch, offset, numSamples);
         }
 
         // 2. Pre high-pass (solo Tube): aprieta los graves antes del shaper.
@@ -169,7 +179,7 @@ public:
 
         for (int ch = 0; ch < numCh; ++ch)
         {
-            auto* d   = buffer.getWritePointer (ch);
+            auto* d   = buffer.getWritePointer (ch) + offset;
             const auto* dry = dryBuffer.getReadPointer (ch);
             const auto* wet = wetBuffer.getReadPointer (ch);
             const auto c = (size_t) ch;
@@ -190,8 +200,7 @@ public:
         }
     }
 
-private:
-    //==========================================================================
+    //==============================================================================
     using Filter = juce::dsp::ProcessorDuplicator<juce::dsp::IIR::Filter<float>,
                                                   juce::dsp::IIR::Coefficients<float>>;
 

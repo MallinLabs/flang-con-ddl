@@ -20,6 +20,12 @@ enum class SpaceRouting { ReverbIntoEcho, EchoIntoReverb, Parallel };
     suavizados: moverlos de golpe no produce clicks, y el tiempo "glidea" estilo
     cinta (pitch bend) en vez de saltar.
 
+    **Manejo de nivel**: cada rama es un crossfade dry/wet (no una suma encima del
+    dry) y el tap del eco se normaliza por `1 - feedback`, que es la suma de la
+    cola de repeticiones. Sin eso el eco amplificaba hasta 4.4x (Delay 1.0 con
+    Repeats 0.72) y los presets con espacio al palo se escuchaban reventados. En
+    ruteo paralelo los dos returns se reparten el presupuesto del wet.
+
     Nucleo puro: no depende del host.
 */
 class SpaceFX
@@ -99,69 +105,90 @@ public:
         if (numSamples == 0 || numCh == 0)
             return;
 
+        // Trozos de maxBlock: bufA/bufB (ruteo paralelo) estan dimensionados a
+        // maxBlock y el host puede mandar un bloque mas grande.
+        for (int offset = 0; offset < numSamples; offset += maxBlock)
+            processChunk (buffer, offset, juce::jmin (maxBlock, numSamples - offset), numCh);
+    }
+
+private:
+    void processChunk (juce::AudioBuffer<float>& buffer, int offset, int numSamples, int numCh) noexcept
+    {
+        const float wr = reverbAmount;
+        const float wd = delayAmount;
+        juce::ignoreUnused (wd);
+
         switch (routing)
         {
             case SpaceRouting::ReverbIntoEcho:
-                applyReverb (buffer, numSamples, numCh, 1.0f, reverbAmount);
-                applyDelay (buffer, numSamples, numCh);
+                applyReverb (buffer, offset, numSamples, numCh, 1.0f - wr, wr);
+                applyDelay  (buffer, offset, numSamples, numCh, true, 1.0f);
                 break;
 
             case SpaceRouting::EchoIntoReverb:
-                applyDelay (buffer, numSamples, numCh);
-                applyReverb (buffer, numSamples, numCh, 1.0f, reverbAmount);
+                applyDelay  (buffer, offset, numSamples, numCh, true, 1.0f);
+                applyReverb (buffer, offset, numSamples, numCh, 1.0f - wr, wr);
                 break;
 
             case SpaceRouting::Parallel:
             default:
             {
+                // Los dos returns se reparten el presupuesto del wet y el dry se
+                // queda con lo que sobra: la suma nunca supera la entrada.
+                const float sum  = wr + wd;
+                const float norm = sum > 1.0f ? 1.0f / sum : 1.0f;
+                const float kr   = wr * norm;
+                const float kd   = wd * norm;
+                const float dry  = juce::jmax (0.0f, 1.0f - kr - kd);
+
                 for (int ch = 0; ch < numCh; ++ch)
                 {
-                    bufA.copyFrom (ch, 0, buffer, ch, 0, numSamples);
-                    bufB.copyFrom (ch, 0, buffer, ch, 0, numSamples);
+                    bufA.copyFrom (ch, 0, buffer, ch, offset, numSamples);
+                    bufB.copyFrom (ch, 0, buffer, ch, offset, numSamples);
                 }
 
-                applyReverb (bufA, numSamples, numCh, 0.0f, reverbAmount); // solo wet
-                applyDelay  (bufB, numSamples, numCh);                     // dry + wet
+                applyReverb (bufA, 0, numSamples, numCh, 0.0f, kr);  // solo wet
+                applyDelay  (bufB, 0, numSamples, numCh, false, kd); // solo wet
 
                 for (int ch = 0; ch < numCh; ++ch)
                 {
-                    auto* d = buffer.getWritePointer (ch);
+                    auto* d = buffer.getWritePointer (ch) + offset;
                     const auto* a = bufA.getReadPointer (ch);
                     const auto* b = bufB.getReadPointer (ch);
 
                     for (int i = 0; i < numSamples; ++i)
-                        d[i] = a[i] + b[i];
+                        d[i] = dry * d[i] + a[i] + b[i];
                 }
                 break;
             }
         }
     }
 
-private:
     //==========================================================================
     static constexpr float kMaxDelaySeconds = 1.0f;
     static constexpr float kFeedbackLpHz    = 4000.0f;
 
-    void applyReverb (juce::AudioBuffer<float>& buffer, int numSamples, int numCh,
-                      float dry, float wet) noexcept
+    void applyReverb (juce::AudioBuffer<float>& buffer, int offset, int numSamples, int numCh,
+                      float dryAmount, float wetAmount) noexcept
     {
         juce::dsp::Reverb::Parameters p;
         p.roomSize = reverbDecay;
         p.damping  = 0.45f;
         p.width    = 1.0f;
         // juce::Reverb escala: dryGain = dryLevel*2, wet = wetLevel*3.
-        p.dryLevel = dry * 0.5f;
-        p.wetLevel = wet / 3.0f;
+        p.dryLevel = juce::jlimit (0.0f, 1.0f, dryAmount) * 0.5f;
+        p.wetLevel = juce::jlimit (0.0f, 1.0f, wetAmount) / 3.0f;
         reverb.setParameters (p);
 
         auto block = juce::dsp::AudioBlock<float> (buffer)
                          .getSubsetChannelBlock (0, (size_t) numCh)
-                         .getSubBlock (0, (size_t) numSamples);
+                         .getSubBlock ((size_t) offset, (size_t) numSamples);
         juce::dsp::ProcessContextReplacing<float> ctx (block);
         reverb.process (ctx);
     }
 
-    void applyDelay (juce::AudioBuffer<float>& buffer, int numSamples, int numCh) noexcept
+    void applyDelay (juce::AudioBuffer<float>& buffer, int offset, int numSamples, int numCh,
+                     bool includeDry, float branchWeight) noexcept
     {
         for (int i = 0; i < numSamples; ++i)
         {
@@ -170,9 +197,16 @@ private:
             const float dSamples = juce::jlimit (1.0f, (float) (delayBufferSize - 2),
                                                  delaySamplesSm.getNextValue());
 
+            const float wetGain = branchWeight * amt;
+            const float dryGain = includeDry ? juce::jmax (0.0f, 1.0f - wetGain) : 0.0f;
+
+            // La cola de repeticiones suma 1/(1-fb): se normaliza el tap para que
+            // el wet no crezca con los repeats (antes: hasta 4.4x).
+            const float tapNorm = 1.0f - fb;
+
             for (int ch = 0; ch < numCh; ++ch)
             {
-                auto* d = buffer.getWritePointer (ch);
+                auto* d = buffer.getWritePointer (ch) + offset;
                 const float in = d[i];
 
                 const float delayed = readDelay (ch, dSamples);
@@ -180,7 +214,7 @@ private:
                 feedbackLp[(size_t) ch] += feedbackCoef * (delayed - feedbackLp[(size_t) ch]);
                 writeDelay (ch, in + fb * feedbackLp[(size_t) ch]);
 
-                d[i] = in + amt * delayed;
+                d[i] = in * dryGain + wetGain * tapNorm * delayed;
             }
         }
     }

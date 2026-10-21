@@ -60,9 +60,10 @@ public:
             return;
 
         const int len = juce::jmin ((int) newIr.size(), kMaxIrLength);
-        auto ir = std::make_shared<const std::vector<float>> (newIr.begin(),
-                                                              newIr.begin() + len);
-        std::atomic_store (&impulse, ir);
+        std::vector<float> normalized (newIr.begin(), newIr.begin() + len);
+        normalizeGain (normalized);
+
+        std::atomic_store (&impulse, std::make_shared<const std::vector<float>> (std::move (normalized)));
     }
 
     //==========================================================================
@@ -78,15 +79,25 @@ public:
         if (ir == nullptr || ir->empty())
             return;
 
+        // Trozos de maxBlock: el host puede mandar un bloque mas grande que el
+        // declarado y dryBuffer esta dimensionado a maxBlock (antes: OOB).
+        for (int offset = 0; offset < numSamples; offset += maxBlock)
+            processChunk (buffer, offset, juce::jmin (maxBlock, numSamples - offset), numCh, *ir);
+    }
+
+private:
+    void processChunk (juce::AudioBuffer<float>& buffer, int offset, int numSamples, int numCh,
+                       const std::vector<float>& ir) noexcept
+    {
         for (int ch = 0; ch < numCh; ++ch)
-            dryBuffer.copyFrom (ch, 0, buffer, ch, 0, numSamples);
+            dryBuffer.copyFrom (ch, 0, buffer, ch, offset, numSamples);
 
         for (int ch = 0; ch < numCh; ++ch)
-            processChannel (ch, buffer.getWritePointer (ch), numSamples, *ir);
+            processChannel (ch, buffer.getWritePointer (ch) + offset, numSamples, ir);
 
         for (int ch = 0; ch < numCh; ++ch)
         {
-            auto* d = buffer.getWritePointer (ch);
+            auto* d = buffer.getWritePointer (ch) + offset;
             const auto* dry = dryBuffer.getReadPointer (ch);
 
             for (int i = 0; i < numSamples; ++i)
@@ -125,15 +136,41 @@ private:
         writePos[(size_t) ch] = pos;
     }
 
-    static void normalize (std::vector<float>& ir)
+    // Normaliza la IR a ganancia unitaria en frecuencia (max |H(f)| = 1): ninguna
+    // frecuencia queda amplificada. Antes se normalizaba por energia (norma L2),
+    // lo que dejaba la cab con ~8 dB de ganancia de pico y con cabMix al 100%
+    // empujaba la salida al soft clip (el preset sonaba "estallado").
+    void normalizeGain (std::vector<float>& ir) const
     {
-        double energy = 0.0;
-        for (float v : ir)
-            energy += (double) v * v;
+        const int n = (int) ir.size();
+        if (n == 0)
+            return;
 
-        const float norm = energy > 0.0 ? (float) (1.0 / std::sqrt (energy)) : 1.0f;
-        for (auto& v : ir)
-            v *= norm;
+        const double fLo = 20.0;
+        const double fHi = juce::jmin (20000.0, sampleRate * 0.49);
+
+        double peak = 0.0;
+        constexpr int kPoints = 128;
+
+        for (int p = 0; p < kPoints; ++p)
+        {
+            const double f = fLo * std::pow (fHi / fLo, (double) p / (double) (kPoints - 1));
+            const double w = juce::MathConstants<double>::twoPi * f / sampleRate;
+
+            double re = 0.0, im = 0.0;
+            for (int i = 0; i < n; ++i)
+            {
+                const double v = (double) ir[(size_t) i];
+                re += v * std::cos (w * i);
+                im -= v * std::sin (w * i);
+            }
+
+            peak = juce::jmax (peak, std::sqrt (re * re + im * im));
+        }
+
+        if (peak > 1.0e-9)
+            for (auto& v : ir)
+                v = (float) ((double) v / peak);
     }
 
     static std::vector<float> makeBuiltInIR (double sr)
@@ -161,7 +198,7 @@ private:
         for (int i = 0; i < len; ++i)
             ir[(size_t) i] *= std::exp (-(float) i / tau);
 
-        normalize (ir);
+        // La normalizacion la hace setImpulseResponse (ganancia unitaria).
         return ir;
     }
 

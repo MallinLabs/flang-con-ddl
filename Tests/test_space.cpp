@@ -224,9 +224,12 @@ TEST_CASE ("Delay Repeats agrega repeticiones", "[dsp][space]")
     REQUIRE (lateEnergy (0.8f) > lateEnergy (0.0f));
 }
 
-TEST_CASE ("Paralelo = dry + reverbWet + delayWet", "[dsp][space]")
+TEST_CASE ("Paralelo: reparte el wet entre las dos ramas y no amplifica", "[dsp][space]")
 {
-    auto run = [] (float rv, float dl)
+    // El ruteo paralelo ya no es una suma lineal: los dos returns se reparten el
+    // presupuesto del wet (kr + kd <= 1) y el dry se queda con el resto. Asi la
+    // etapa nunca amplifica, que era lo que reventaba los presets con espacio alto.
+    auto run = [] (float rv, float dl, flang::dsp::SpaceRouting routing = flang::dsp::SpaceRouting::Parallel)
     {
         flang::dsp::SpaceFX space;
         space.prepare (kSr, 2, 4096);
@@ -235,7 +238,7 @@ TEST_CASE ("Paralelo = dry + reverbWet + delayWet", "[dsp][space]")
         space.setDelayAmount (dl);
         space.setDelayTimeMs (100.0f);
         space.setDelayFeedback (0.3f);
-        space.setRouting (flang::dsp::SpaceRouting::Parallel);
+        space.setRouting (routing);
 
         juce::AudioBuffer<float> last (2, 4096);
         for (int block = 0; block < 4; ++block)
@@ -248,21 +251,23 @@ TEST_CASE ("Paralelo = dry + reverbWet + delayWet", "[dsp][space]")
         return last;
     };
 
-    // p(rv,dl) debe ser dry + rWet + dWet == p(rv,0) + p(0,dl) - p(0,0)
-    const auto p00 = run (0.0f, 0.0f);
-    const auto p10 = run (0.6f, 0.0f);
-    const auto p01 = run (0.0f, 0.5f);
-    const auto p11 = run (0.6f, 0.5f);
+    const float inputPeak = 0.3f;
 
-    float maxErr = 0.0f;
-    for (int ch = 0; ch < 2; ++ch)
-        for (int i = 0; i < p11.getNumSamples(); ++i)
-        {
-            const float expected = p10.getSample (ch, i) + p01.getSample (ch, i) - p00.getSample (ch, i);
-            maxErr = juce::jmax (maxErr, std::abs (p11.getSample (ch, i) - expected));
-        }
+    for (auto [rv, dl] : { std::pair { 0.6f, 0.5f }, std::pair { 1.0f, 1.0f }, std::pair { 0.85f, 0.9f } })
+    {
+        const auto out = run (rv, dl);
+        const float peak = out.getMagnitude (0, 0, out.getNumSamples());
 
-    REQUIRE (maxErr < 1e-4f);
+        // Nunca por encima de la entrada (con 5% de margen por el filtrado).
+        REQUIRE (peak <= inputPeak * 1.05f);
+
+        // Los dos returns siguen audibles: la salida no es el dry pelado.
+        const auto dryOnly = run (0.0f, 0.0f);
+        float maxDiff = 0.0f;
+        for (int i = 0; i < out.getNumSamples(); ++i)
+            maxDiff = juce::jmax (maxDiff, std::abs (out.getSample (0, i) - dryOnly.getSample (0, i)));
+        REQUIRE (maxDiff > 0.01f);
+    }
 }
 
 TEST_CASE ("Cambiar el Delay Amount de golpe no produce clicks", "[dsp][space]")

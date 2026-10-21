@@ -16,6 +16,8 @@ target_sources(FlangTests PRIVATE
     test_mod.cpp
     test_space.cpp
     test_cab.cpp
+    test_repro_tubelead.cpp
+    test_presets.cpp
 )
 
 target_include_directories(FlangTests PRIVATE ${CMAKE_SOURCE_DIR}/Source)
